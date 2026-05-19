@@ -7,7 +7,17 @@ from telegram.ext import (
     filters,
 )
 
-from config.settings import get_settings
+from bot.constants.buttons import (
+    ADMIN_BUTTON,
+    DESTINATIONS_BUTTON,
+    ROUTING_BUTTON,
+    RSS_SOURCES_BUTTON,
+    SOURCE_PACKS_BUTTON,
+)
+
+from config.settings import (
+    get_settings,
+)
 
 # ==================================================
 # USER HANDLERS
@@ -45,6 +55,7 @@ from handlers.admin.routing_management import (
     routing_handler,
 )
 
+
 logger = logging.getLogger(__name__)
 
 settings = get_settings()
@@ -52,13 +63,13 @@ settings = get_settings()
 
 def create_application() -> Application:
     application = (
-        Application.builder() \
-            .token(settings.BOT_TOKEN) \
-            .connect_timeout(30) \
-            .read_timeout(30) \
-            .write_timeout(30) \
-            .pool_timeout(30) \
-            .build()
+        Application.builder()
+        .token(settings.BOT_TOKEN)
+        .connect_timeout(30)
+        .read_timeout(30)
+        .write_timeout(30)
+        .pool_timeout(30)
+        .build()
     )
 
     # ==================================================
@@ -80,7 +91,7 @@ def create_application() -> Application:
         MessageHandler(
             filters.TEXT
             & filters.Regex(
-                "^⚙️ Админ$"
+                f"^{ADMIN_BUTTON}$"
             ),
             admin_menu_handler,
         )
@@ -94,7 +105,7 @@ def create_application() -> Application:
         MessageHandler(
             filters.TEXT
             & filters.Regex(
-                "^📰 RSS Источники$"
+                f"^{RSS_SOURCES_BUTTON}$"
             ),
             rss_sources_handler,
         )
@@ -115,7 +126,7 @@ def create_application() -> Application:
         MessageHandler(
             filters.TEXT
             & filters.Regex(
-                "^📦 Source Packs$"
+                f"^{SOURCE_PACKS_BUTTON}$"
             ),
             source_packs_handler,
         )
@@ -136,7 +147,7 @@ def create_application() -> Application:
         MessageHandler(
             filters.TEXT
             & filters.Regex(
-                "^📬 Destinations$"
+                f"^{DESTINATIONS_BUTTON}$"
             ),
             destinations_handler,
         )
@@ -157,7 +168,7 @@ def create_application() -> Application:
         MessageHandler(
             filters.TEXT
             & filters.Regex(
-                "^🔀 Routing$"
+                f"^{ROUTING_BUTTON}$"
             ),
             routing_handler,
         )
