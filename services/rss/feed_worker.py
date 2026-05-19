@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from sqlalchemy import select
@@ -21,13 +22,13 @@ class FeedWorker:
         self.processor = RSSProcessor()
 
     # ==================================================
-    # SCHEDULER ENTRYPOINT
+    # SYNC ENTRYPOINT FOR APSCHEDULER
     # ==================================================
 
-    async def run(
-        self,
-    ) -> None:
-        await self.process_sources()
+    def run(self) -> None:
+        asyncio.create_task(
+            self.process_sources()
+        )
 
     # ==================================================
     # PROCESS RSS SOURCES
