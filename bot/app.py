@@ -35,6 +35,10 @@ from handlers.admin.pack_management import (
     source_packs_handler,
 )
 
+from handlers.admin.destination_management import (
+    add_destination_handler,
+    destinations_handler,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +116,27 @@ def create_application() -> Application:
         CommandHandler(
             "add_pack",
             add_pack_handler,
+        )
+    )
+
+    # ==================================================
+    # DESTINATIONS
+    # ==================================================
+
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT
+            & filters.Regex(
+                "^📬 Destinations$"
+            ),
+            destinations_handler,
+        )
+    )
+
+    application.add_handler(
+        CommandHandler(
+            "add_destination",
+            add_destination_handler,
         )
     )
 
