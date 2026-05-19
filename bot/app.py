@@ -3,6 +3,12 @@ import logging
 from telegram.ext import (
     Application,
     CommandHandler,
+    MessageHandler,
+    filters,
+)
+
+from handlers.admin.admin_menu import (
+    admin_menu_handler,
 )
 
 from config.settings import get_settings
