@@ -3,34 +3,46 @@ import logging
 
 from bot.app import create_application
 from scheduler.scheduler import setup_scheduler
-from utils.logger import setup_logger
 
 
-setup_logger()
+logging.basicConfig(
+    level=logging.INFO,
+    format=(
+        "%(asctime)s | "
+        "%(levelname)s | "
+        "%(name)s | "
+        "%(message)s"
+    ),
+)
 
 logger = logging.getLogger(__name__)
 
 
-async def main() -> None:
-    logger.info("Starting Telegram News SaaS Bot")
-
-    setup_scheduler(application)
+async def main():
+    logger.info(
+        "Starting Telegram News SaaS Bot"
+    )
 
     application = create_application()
 
-    logger.info("Bot polling started")
+    setup_scheduler(application)
+
+    logger.info(
+        "Scheduler started"
+    )
 
     await application.initialize()
+
     await application.start()
+
     await application.updater.start_polling()
 
-    try:
-        while True:
-            await asyncio.sleep(3600)
-    finally:
-        await application.updater.stop()
-        await application.stop()
-        await application.shutdown()
+    logger.info(
+        "Bot polling started"
+    )
+
+    while True:
+        await asyncio.sleep(3600)
 
 
 if __name__ == "__main__":
