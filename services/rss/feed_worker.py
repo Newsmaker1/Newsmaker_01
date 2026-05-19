@@ -19,6 +19,10 @@ class FeedWorker:
     async def process_sources(
         self,
     ) -> None:
+        logger.info(
+            "Feed worker started"
+        )
+
         async with AsyncSessionLocal() as session:
             result = await session.execute(
                 select(PackSource).where(
@@ -46,14 +50,29 @@ class FeedWorker:
 
         for source in sources:
             try:
+                logger.info(
+                    f"Processing source: "
+                    f"{source.id}"
+                )
+
                 await (
                     self.processor
                     .process_pack_source(
                         source
                     )
                 )
+
+                logger.info(
+                    f"Source processed: "
+                    f"{source.id}"
+                )
+
             except Exception as exc:
                 logger.exception(
                     f"Feed worker error: "
                     f"{exc}"
                 )
+
+        logger.info(
+            "Feed worker finished"
+        )
