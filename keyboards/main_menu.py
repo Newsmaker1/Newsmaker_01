@@ -11,6 +11,9 @@ def get_main_menu_keyboard() -> ReplyKeyboardMarkup:
             KeyboardButton("📬 Публикации")
         ],
         [
+            KeyboardButton("⚙️ Админ")
+        ],
+        [
             KeyboardButton("💬 Поддержка"),
             KeyboardButton("⚙️ Настройки")
         ]
