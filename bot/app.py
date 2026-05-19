@@ -7,6 +7,20 @@ from telegram.ext import (
     filters,
 )
 
+from config.settings import get_settings
+
+# =========================
+# USER HANDLERS
+# =========================
+
+from handlers.start import (
+    start_handler,
+)
+
+# =========================
+# ADMIN HANDLERS
+# =========================
+
 from handlers.admin.admin_menu import (
     admin_menu_handler,
 )
@@ -15,9 +29,6 @@ from handlers.admin.source_management import (
     add_rss_handler,
     rss_sources_handler,
 )
-
-from config.settings import get_settings
-from handlers.start import start_handler
 
 
 logger = logging.getLogger(__name__)
@@ -32,17 +43,58 @@ def create_application() -> Application:
         .build()
     )
 
+    # ==================================================
+    # START
+    # ==================================================
+
     application.add_handler(
-        CommandHandler("start", start_handler)
+        CommandHandler(
+            "start",
+            start_handler,
+        )
     )
+
+    # ==================================================
+    # ADMIN PANEL
+    # ==================================================
 
     application.add_handler(
         MessageHandler(
-            filters.TEXT("⚙️ Админ"),
+            filters.TEXT
+            & filters.Regex(
+                "^⚙️ Админ$"
+            ),
             admin_menu_handler,
         )
     )
-    
-    logger.info("Telegram application initialized")
+
+    # ==================================================
+    # RSS SOURCES
+    # ==================================================
+
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT
+            & filters.Regex(
+                "^📰 RSS Источники$"
+            ),
+            rss_sources_handler,
+        )
+    )
+
+    application.add_handler(
+        CommandHandler(
+            "add_rss",
+            add_rss_handler,
+        )
+    )
+
+    # ==================================================
+    # LOGGING
+    # ==================================================
+
+    logger.info(
+        "Telegram application initialized"
+    )
 
     return application
