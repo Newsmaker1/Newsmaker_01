@@ -7,13 +7,6 @@ from telegram.ext import (
     filters,
 )
 
-from bot.constants.buttons import (
-    ADMIN_BUTTON,
-    DESTINATIONS_BUTTON,
-    RSS_SOURCES_BUTTON,
-    SOURCE_PACKS_BUTTON,
-)
-
 from config.settings import (
     get_settings,
 )
@@ -78,15 +71,12 @@ def create_application() -> Application:
     )
 
     # ==================================================
-    # ADMIN PANEL
+    # ADMIN MENU
     # ==================================================
 
     application.add_handler(
         MessageHandler(
-            filters.TEXT
-            & filters.Regex(
-                f"^{ADMIN_BUTTON}$"
-            ),
+            filters.TEXT,
             admin_menu_handler,
         )
     )
@@ -97,10 +87,7 @@ def create_application() -> Application:
 
     application.add_handler(
         MessageHandler(
-            filters.TEXT
-            & filters.Regex(
-                f"^{RSS_SOURCES_BUTTON}$"
-            ),
+            filters.TEXT,
             rss_sources_handler,
         )
     )
@@ -118,10 +105,7 @@ def create_application() -> Application:
 
     application.add_handler(
         MessageHandler(
-            filters.TEXT
-            & filters.Regex(
-                f"^{SOURCE_PACKS_BUTTON}$"
-            ),
+            filters.TEXT,
             source_packs_handler,
         )
     )
@@ -139,10 +123,7 @@ def create_application() -> Application:
 
     application.add_handler(
         MessageHandler(
-            filters.TEXT
-            & filters.Regex(
-                f"^{DESTINATIONS_BUTTON}$"
-            ),
+            filters.TEXT,
             destinations_handler,
         )
     )
