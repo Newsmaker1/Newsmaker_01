@@ -31,6 +31,13 @@ def create_application() -> Application:
         CommandHandler("start", start_handler)
     )
 
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT("⚙️ Админ"),
+            admin_menu_handler,
+        )
+    )
+    
     logger.info("Telegram application initialized")
 
     return application
