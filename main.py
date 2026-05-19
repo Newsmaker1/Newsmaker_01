@@ -41,8 +41,7 @@ async def main():
         "Bot polling started"
     )
 
-    while True:
-        await asyncio.sleep(3600)
+    await asyncio.Event().wait()
 
 
 if __name__ == "__main__":
