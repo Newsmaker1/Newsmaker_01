@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 async def main() -> None:
     logger.info("Starting Telegram News SaaS Bot")
 
-    setup_scheduler()
+    setup_scheduler(application)
 
     application = create_application()
 
