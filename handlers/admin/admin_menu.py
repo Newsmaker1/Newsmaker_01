@@ -1,48 +1,41 @@
-from telegram import (
-    KeyboardButton,
-    ReplyKeyboardMarkup,
+from telegram import Update
+
+from telegram.ext import (
+    ContextTypes,
 )
 
-from bot.constants.buttons import (
-    BACK_BUTTON,
-    DESTINATIONS_BUTTON,
-    RSS_SOURCES_BUTTON,
-    SOURCE_PACKS_BUTTON,
-    STATISTICS_BUTTON,
+from config.settings import (
+    get_settings,
+)
+
+from keyboards.admin.admin_menu import (
+    get_admin_menu,
 )
 
 
-def get_admin_menu():
-    keyboard = [
-        [
-            KeyboardButton(
-                RSS_SOURCES_BUTTON
-            )
-        ],
-        [
-            KeyboardButton(
-                SOURCE_PACKS_BUTTON
-            )
-        ],
-        [
-            KeyboardButton(
-                DESTINATIONS_BUTTON
-            )
-        ],
-        [
-            KeyboardButton(
-                STATISTICS_BUTTON
-            )
-        ],
-        [
-            KeyboardButton(
-                BACK_BUTTON
-            )
-        ],
-    ]
+settings = get_settings()
 
-    return ReplyKeyboardMarkup(
-        keyboard=keyboard,
-        resize_keyboard=True,
-        is_persistent=True,
+
+async def admin_menu_handler(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+) -> None:
+    user = update.effective_user
+
+    if user is None:
+        return
+
+    if user.id not in settings.ADMIN_IDS:
+        await update.message.reply_text(
+            text="⛔ Нет доступа",
+        )
+
+        return
+
+    await update.message.reply_text(
+        text=(
+            "🛠 Панель администратора\n\n"
+            "Выберите действие:"
+        ),
+        reply_markup=get_admin_menu(),
     )
