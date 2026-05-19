@@ -10,7 +10,6 @@ from telegram.ext import (
 from bot.constants.buttons import (
     ADMIN_BUTTON,
     DESTINATIONS_BUTTON,
-    ROUTING_BUTTON,
     RSS_SOURCES_BUTTON,
     SOURCE_PACKS_BUTTON,
 )
@@ -48,11 +47,6 @@ from handlers.admin.pack_management import (
 from handlers.admin.destination_management import (
     add_destination_handler,
     destinations_handler,
-)
-
-from handlers.admin.routing_management import (
-    add_route_handler,
-    routing_handler,
 )
 
 
@@ -157,27 +151,6 @@ def create_application() -> Application:
         CommandHandler(
             "add_destination",
             add_destination_handler,
-        )
-    )
-
-    # ==================================================
-    # ROUTING
-    # ==================================================
-
-    application.add_handler(
-        MessageHandler(
-            filters.TEXT
-            & filters.Regex(
-                f"^{ROUTING_BUTTON}$"
-            ),
-            routing_handler,
-        )
-    )
-
-    application.add_handler(
-        CommandHandler(
-            "add_route",
-            add_route_handler,
         )
     )
 
