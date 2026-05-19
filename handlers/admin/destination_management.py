@@ -39,7 +39,7 @@ async def destinations_handler(
     if not destinations:
         text = (
             "📬 Каналы публикации\n\n"
-            "Destinations пока нет."
+            "Каналы публикации пока не созданы."
         )
     else:
         lines = [
