@@ -1,7 +1,9 @@
 import logging
 
 from sqlalchemy import select
+
 from telegram import Update
+
 from telegram.ext import (
     ContextTypes,
 )
@@ -9,6 +11,11 @@ from telegram.ext import (
 from database.session import (
     AsyncSessionLocal,
 )
+
+from keyboards.admin.admin_menu import (
+    get_admin_menu,
+)
+
 from models.source_pack import (
     PackSource,
 )
@@ -20,21 +27,34 @@ logger = logging.getLogger(__name__)
 async def rss_sources_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
-):
+) -> None:
     async with AsyncSessionLocal() as session:
         result = await session.execute(
             select(PackSource)
-            .order_by(PackSource.id.desc())
+            .order_by(
+                PackSource.id.desc()
+            )
             .limit(20)
         )
 
-        sources = result.scalars().all()
+        sources = (
+            result.scalars().all()
+        )
+
+    # ==============================================
+    # EMPTY LIST
+    # ==============================================
 
     if not sources:
         text = (
             "📰 RSS источники\n\n"
             "Источников пока нет."
         )
+
+    # ==============================================
+    # SOURCES LIST
+    # ==============================================
+
     else:
         lines = [
             "📰 RSS источники\n"
@@ -43,12 +63,17 @@ async def rss_sources_handler(
         for source in sources:
             lines.append(
                 f"ID: {source.id}\n"
-                f"Pack: {source.pack_id}\n"
+                f"Пакет: {source.pack_id}\n"
                 f"URL: {source.source_url}\n"
-                f"Active: {source.is_active}\n"
+                f"Активен: "
+                f"{source.is_active}\n"
             )
 
         text = "\n".join(lines)
+
+    # ==============================================
+    # HELP
+    # ==============================================
 
     text += (
         "\n\n"
@@ -57,27 +82,45 @@ async def rss_sources_handler(
     )
 
     await update.message.reply_text(
-        text
+        text=text,
+        reply_markup=(
+            get_admin_menu()
+        ),
     )
 
 
 async def add_rss_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
-):
+) -> None:
     try:
         args = context.args
 
+        # ==========================================
+        # VALIDATION
+        # ==========================================
+
         if len(args) < 2:
             await update.message.reply_text(
-                "Использование:\n"
-                "/add_rss RSS_URL PACK_ID"
+                text=(
+                    "Использование:\n"
+                    "/add_rss "
+                    "RSS_URL PACK_ID"
+                ),
+                reply_markup=(
+                    get_admin_menu()
+                ),
             )
 
             return
 
         rss_url = args[0]
+
         pack_id = int(args[1])
+
+        # ==========================================
+        # CREATE SOURCE
+        # ==========================================
 
         async with AsyncSessionLocal() as session:
             source = PackSource(
@@ -91,7 +134,10 @@ async def add_rss_handler(
             await session.commit()
 
         await update.message.reply_text(
-            "✅ RSS источник добавлен"
+            text="✅ RSS источник добавлен",
+            reply_markup=(
+                get_admin_menu()
+            ),
         )
 
         logger.info(
@@ -103,5 +149,8 @@ async def add_rss_handler(
         logger.exception(exc)
 
         await update.message.reply_text(
-            f"❌ Ошибка:\n{exc}"
+            text=f"❌ Ошибка:\n{exc}",
+            reply_markup=(
+                get_admin_menu()
+            ),
         )
