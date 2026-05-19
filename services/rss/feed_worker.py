@@ -3,7 +3,11 @@ import logging
 from sqlalchemy import select
 
 from database.session import AsyncSessionLocal
-from models.source_pack import PackSource
+
+from models.source_pack import (
+    PackSource,
+)
+
 from services.rss.processor import (
     RSSProcessor,
 )
@@ -15,6 +19,19 @@ logger = logging.getLogger(__name__)
 class FeedWorker:
     def __init__(self) -> None:
         self.processor = RSSProcessor()
+
+    # ==================================================
+    # SCHEDULER ENTRYPOINT
+    # ==================================================
+
+    async def run(
+        self,
+    ) -> None:
+        await self.process_sources()
+
+    # ==================================================
+    # PROCESS RSS SOURCES
+    # ==================================================
 
     async def process_sources(
         self,
