@@ -9,17 +9,17 @@ from telegram.ext import (
 
 from config.settings import get_settings
 
-# =========================
+# ==================================================
 # USER HANDLERS
-# =========================
+# ==================================================
 
 from handlers.start import (
     start_handler,
 )
 
-# =========================
+# ==================================================
 # ADMIN HANDLERS
-# =========================
+# ==================================================
 
 from handlers.admin.admin_menu import (
     admin_menu_handler,
@@ -28,6 +28,11 @@ from handlers.admin.admin_menu import (
 from handlers.admin.source_management import (
     add_rss_handler,
     rss_sources_handler,
+)
+
+from handlers.admin.pack_management import (
+    add_pack_handler,
+    source_packs_handler,
 )
 
 
@@ -86,6 +91,27 @@ def create_application() -> Application:
         CommandHandler(
             "add_rss",
             add_rss_handler,
+        )
+    )
+
+    # ==================================================
+    # SOURCE PACKS
+    # ==================================================
+
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT
+            & filters.Regex(
+                "^📦 Source Packs$"
+            ),
+            source_packs_handler,
+        )
+    )
+
+    application.add_handler(
+        CommandHandler(
+            "add_pack",
+            add_pack_handler,
         )
     )
 
