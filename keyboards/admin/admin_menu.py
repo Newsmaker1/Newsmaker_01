@@ -3,37 +3,40 @@ from telegram import (
     ReplyKeyboardMarkup,
 )
 
+from bot.constants.buttons import (
+    BACK_BUTTON,
+    DESTINATIONS_BUTTON,
+    RSS_SOURCES_BUTTON,
+    SOURCE_PACKS_BUTTON,
+    STATISTICS_BUTTON,
+)
+
 
 def get_admin_menu():
     keyboard = [
         [
             KeyboardButton(
-                "📰 RSS Источники"
+                RSS_SOURCES_BUTTON
             )
         ],
         [
             KeyboardButton(
-                "📦 Source Packs"
+                SOURCE_PACKS_BUTTON
             )
         ],
         [
             KeyboardButton(
-                "📬 Destinations"
+                DESTINATIONS_BUTTON
             )
         ],
         [
             KeyboardButton(
-                "🔀 Routing"
+                STATISTICS_BUTTON
             )
         ],
         [
             KeyboardButton(
-                "📊 Статистика"
-            )
-        ],
-        [
-            KeyboardButton(
-                "⬅️ Назад"
+                BACK_BUTTON
             )
         ],
     ]
@@ -41,4 +44,5 @@ def get_admin_menu():
     return ReplyKeyboardMarkup(
         keyboard=keyboard,
         resize_keyboard=True,
+        is_persistent=True,
     )
