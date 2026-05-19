@@ -25,12 +25,6 @@ async def main():
 
     application = create_application()
 
-    setup_scheduler(application)
-
-    logger.info(
-        "Scheduler started"
-    )
-
     await application.initialize()
 
     await application.start()
@@ -39,6 +33,13 @@ async def main():
 
     logger.info(
         "Bot polling started"
+    )
+
+    # START SCHEDULER ONLY AFTER LOOP READY
+    setup_scheduler(application)
+
+    logger.info(
+        "Scheduler started"
     )
 
     await asyncio.Event().wait()
