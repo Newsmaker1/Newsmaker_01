@@ -36,7 +36,7 @@ def setup_scheduler(
     # ==================================================
 
     scheduler.add_job(
-        feed_worker.run,
+        feed_worker.process_sources,
         trigger="interval",
         minutes=(
             settings
