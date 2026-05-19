@@ -38,12 +38,12 @@ async def destinations_handler(
 
     if not destinations:
         text = (
-            "📬 Destinations\n\n"
+            "📬 Каналы публикации\n\n"
             "Destinations пока нет."
         )
     else:
         lines = [
-            "📬 Destinations\n"
+            "📬 Каналы публикации\n"
         ]
 
         for dest in destinations:
