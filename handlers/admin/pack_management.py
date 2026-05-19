@@ -31,12 +31,12 @@ async def source_packs_handler(
 
     if not packs:
         text = (
-            "📦 Source Packs\n\n"
+            "📦 Пакеты источников\n\n"
             "Паков пока нет."
         )
     else:
         lines = [
-            "📦 Source Packs\n"
+            "📦 Пакеты источников\n"
         ]
 
         for pack in packs:
