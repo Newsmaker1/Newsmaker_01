@@ -5,9 +5,11 @@ from apscheduler.schedulers.asyncio import (
 )
 
 from config.settings import get_settings
+
 from services.rss.delivery_worker import (
     DeliveryWorker,
 )
+
 from services.rss.feed_worker import (
     FeedWorker,
 )
@@ -29,8 +31,12 @@ def setup_scheduler(
         application=application
     )
 
+    # ==================================================
+    # RSS FEED WORKER
+    # ==================================================
+
     scheduler.add_job(
-        feed_worker.process_sources,
+        feed_worker.run,
         trigger="interval",
         minutes=(
             settings
@@ -41,6 +47,10 @@ def setup_scheduler(
         max_instances=1,
     )
 
+    # ==================================================
+    # DELIVERY WORKER
+    # ==================================================
+
     scheduler.add_job(
         delivery_worker.process_pending,
         trigger="interval",
@@ -49,6 +59,10 @@ def setup_scheduler(
         replace_existing=True,
         max_instances=1,
     )
+
+    # ==================================================
+    # START SCHEDULER
+    # ==================================================
 
     scheduler.start()
 
