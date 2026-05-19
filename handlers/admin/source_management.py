@@ -28,6 +28,11 @@ async def rss_sources_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
 ) -> None:
+    print(
+        "RSS BUTTON:",
+        repr(update.message.text)
+    )
+    
     async with AsyncSessionLocal() as session:
         result = await session.execute(
             select(PackSource)
