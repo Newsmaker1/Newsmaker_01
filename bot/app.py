@@ -40,6 +40,11 @@ from handlers.admin.destination_management import (
     destinations_handler,
 )
 
+from handlers.admin.routing_management import (
+    add_route_handler,
+    routing_handler,
+)
+
 logger = logging.getLogger(__name__)
 
 settings = get_settings()
@@ -137,6 +142,27 @@ def create_application() -> Application:
         CommandHandler(
             "add_destination",
             add_destination_handler,
+        )
+    )
+
+    # ==================================================
+    # ROUTING
+    # ==================================================
+
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT
+            & filters.Regex(
+                "^🔀 Routing$"
+            ),
+            routing_handler,
+        )
+    )
+
+    application.add_handler(
+        CommandHandler(
+            "add_route",
+            add_route_handler,
         )
     )
 
