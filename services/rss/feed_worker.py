@@ -21,22 +21,7 @@ class FeedWorker:
     def __init__(self) -> None:
         self.processor = RSSProcessor()
 
-    # ==================================================
-    # SCHEDULER ENTRYPOINT
-    # ==================================================
 
-    def run(
-        self,
-    ) -> None:
-        logger.info(
-            "Feed worker sync run started"
-        )
-
-        loop = asyncio.get_event_loop()
-
-        loop.create_task(
-            self.process_sources()
-        )
 
     # ==================================================
     # PROCESS SOURCES
