@@ -11,6 +11,11 @@ from handlers.admin.admin_menu import (
     admin_menu_handler,
 )
 
+from handlers.admin.source_management import (
+    add_rss_handler,
+    rss_sources_handler,
+)
+
 from config.settings import get_settings
 from handlers.start import start_handler
 
