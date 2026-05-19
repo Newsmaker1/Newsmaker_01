@@ -20,6 +20,11 @@ async def admin_menu_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
 ) -> None:
+    print(
+        "ADMIN BUTTON:",
+        repr(update.message.text)
+    )
+
     user = update.effective_user
 
     if user is None:
