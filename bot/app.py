@@ -52,9 +52,13 @@ settings = get_settings()
 
 def create_application() -> Application:
     application = (
-        Application.builder()
-        .token(settings.BOT_TOKEN)
-        .build()
+        Application.builder() \
+            .token(settings.BOT_TOKEN) \
+            .connect_timeout(30) \
+            .read_timeout(30) \
+            .write_timeout(30) \
+            .pool_timeout(30) \
+            .build()
     )
 
     # ==================================================
