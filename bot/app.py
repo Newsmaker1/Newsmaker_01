@@ -12,6 +12,17 @@ from config.settings import (
 )
 
 # ==================================================
+# BUTTONS
+# ==================================================
+
+from bot.constants.buttons import (
+    ADMIN_BUTTON,
+    RSS_SOURCES_BUTTON,
+    SOURCE_PACKS_BUTTON,
+    DESTINATIONS_BUTTON,
+)
+
+# ==================================================
 # USER HANDLERS
 # ==================================================
 
@@ -41,7 +52,6 @@ from handlers.admin.destination_management import (
     add_destination_handler,
     destinations_handler,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +86,7 @@ def create_application() -> Application:
 
     application.add_handler(
         MessageHandler(
-            filters.TEXT,
+            filters.Regex(f"^{ADMIN_BUTTON}$"),
             admin_menu_handler,
         )
     )
@@ -87,7 +97,7 @@ def create_application() -> Application:
 
     application.add_handler(
         MessageHandler(
-            filters.TEXT,
+            filters.Regex(f"^{RSS_SOURCES_BUTTON}$"),
             rss_sources_handler,
         )
     )
@@ -105,7 +115,7 @@ def create_application() -> Application:
 
     application.add_handler(
         MessageHandler(
-            filters.TEXT,
+            filters.Regex(f"^{SOURCE_PACKS_BUTTON}$"),
             source_packs_handler,
         )
     )
@@ -123,7 +133,7 @@ def create_application() -> Application:
 
     application.add_handler(
         MessageHandler(
-            filters.TEXT,
+            filters.Regex(f"^{DESTINATIONS_BUTTON}$"),
             destinations_handler,
         )
     )
