@@ -20,6 +20,9 @@ from models.source_pack import (
     PackSource,
 )
 
+from bot.constants.buttons import (
+    RSS_SOURCES_BUTTON,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +35,12 @@ async def rss_sources_handler(
         "RSS BUTTON:",
         repr(update.message.text)
     )
+
+    if (
+        update.message.text
+        != RSS_SOURCES_BUTTON
+    ):
+        return
     
     async with AsyncSessionLocal() as session:
         result = await session.execute(
