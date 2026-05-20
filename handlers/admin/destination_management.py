@@ -24,6 +24,9 @@ from models.enums import (
     DestinationType,
 )
 
+from bot.constants.buttons import (
+    DESTINATIONS_BUTTON,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +47,12 @@ async def destinations_handler(
             result.scalars().all()
         )
 
+    if (
+        update.message.text
+        != DESTINATIONS_BUTTON
+    ):
+        return
+    
     # ==============================================
     # EMPTY LIST
     # ==============================================
