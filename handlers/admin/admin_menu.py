@@ -12,6 +12,9 @@ from keyboards.admin.admin_menu import (
     get_admin_menu,
 )
 
+from bot.constants.buttons import (
+    ADMIN_BUTTON,
+)
 
 settings = get_settings()
 
@@ -25,6 +28,12 @@ async def admin_menu_handler(
         repr(update.message.text)
     )
 
+    if (
+        update.message.text
+        != ADMIN_BUTTON
+    ):
+        return
+    
     user = update.effective_user
 
     if user is None:
