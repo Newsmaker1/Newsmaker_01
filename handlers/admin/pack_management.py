@@ -20,6 +20,9 @@ from models.source_pack import (
     SourcePack,
 )
 
+from bot.constants.buttons import (
+    SOURCE_PACKS_BUTTON,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +38,13 @@ async def source_packs_handler(
         )
 
         packs = result.scalars().all()
-
+    
+    if (
+        update.message.text
+        != SOURCE_PACKS_BUTTON
+    ):
+        return
+    
     # ==============================================
     # EMPTY LIST
     # ==============================================
