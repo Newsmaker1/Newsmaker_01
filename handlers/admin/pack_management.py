@@ -49,6 +49,11 @@ async def source_packs_handler(
     if update.message is None:
         return
 
+    print(
+        "PACK BUTTON:",
+        repr(update.message.text)
+    )
+
     if (
         update.message.text
         != SOURCE_PACKS_BUTTON
@@ -88,18 +93,16 @@ async def build_packs_text():
 
         packs = result.scalars().all()
 
-    if not packs:
+        if not packs:
 
-        return (
-            "📭 PACKS отсутствуют",
-            None,
-        )
+            return (
+                "📭 PACKS отсутствуют",
+                None,
+            )
 
-    text = "📦 Список PACKS\n\n"
+        text = "📦 Список PACKS\n\n"
 
-    keyboard = []
-
-    async with AsyncSessionLocal() as session:
+        keyboard = []
 
         for pack in packs:
 
