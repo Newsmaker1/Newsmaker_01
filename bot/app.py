@@ -122,8 +122,8 @@ def create_application() -> Application:
     )
     
     application.add_handler(
-        CommandHandler(
-            "add_rss",
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
             add_rss_handler,
         )
     )
