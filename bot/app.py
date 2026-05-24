@@ -50,6 +50,7 @@ from handlers.admin.source_management import (
 from handlers.admin.pack_management import (
     add_pack_handler,
     source_packs_handler,
+    pack_callback_handler,
 )
 
 from handlers.admin.destination_management import (
@@ -71,6 +72,7 @@ settings = get_settings()
 
 
 def create_application() -> Application:
+
     application = (
         Application.builder()
         .token(settings.BOT_TOKEN)
@@ -98,7 +100,9 @@ def create_application() -> Application:
 
     application.add_handler(
         MessageHandler(
-            filters.Regex(f"^{ADMIN_BUTTON}$"),
+            filters.Regex(
+                f"^{ADMIN_BUTTON}$"
+            ),
             admin_menu_handler,
         )
     )
@@ -109,7 +113,9 @@ def create_application() -> Application:
 
     application.add_handler(
         MessageHandler(
-            filters.Regex(f"^{RSS_SOURCES_BUTTON}$"),
+            filters.Regex(
+                f"^{RSS_SOURCES_BUTTON}$"
+            ),
             rss_sources_handler,
         )
     )
@@ -120,7 +126,7 @@ def create_application() -> Application:
             pattern="^rss_",
         )
     )
-    
+
     application.add_handler(
         MessageHandler(
             filters.TEXT & ~filters.COMMAND,
@@ -134,14 +140,23 @@ def create_application() -> Application:
 
     application.add_handler(
         MessageHandler(
-            filters.Regex(f"^{SOURCE_PACKS_BUTTON}$"),
+            filters.Regex(
+                f"^{SOURCE_PACKS_BUTTON}$"
+            ),
             source_packs_handler,
         )
     )
 
     application.add_handler(
-        CommandHandler(
-            "add_pack",
+        CallbackQueryHandler(
+            pack_callback_handler,
+            pattern="^pack_",
+        )
+    )
+
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
             add_pack_handler,
         )
     )
@@ -152,7 +167,9 @@ def create_application() -> Application:
 
     application.add_handler(
         MessageHandler(
-            filters.Regex(f"^{DESTINATIONS_BUTTON}$"),
+            filters.Regex(
+                f"^{DESTINATIONS_BUTTON}$"
+            ),
             destinations_handler,
         )
     )
@@ -170,7 +187,9 @@ def create_application() -> Application:
 
     application.add_handler(
         MessageHandler(
-            filters.Regex(f"^{STATISTICS_BUTTON}$"),
+            filters.Regex(
+                f"^{STATISTICS_BUTTON}$"
+            ),
             statistics_handler,
         )
     )
@@ -181,11 +200,13 @@ def create_application() -> Application:
 
     application.add_handler(
         MessageHandler(
-            filters.Regex(f"^{BACK_BUTTON}$"),
+            filters.Regex(
+                f"^{BACK_BUTTON}$"
+            ),
             back_handler,
         )
     )
-    
+
     # ==================================================
     # LOGGING
     # ==================================================
