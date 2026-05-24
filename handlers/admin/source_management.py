@@ -1,36 +1,34 @@
-import logging
-
-from sqlalchemy import select
-
-from telegram import Update
+from telegram import (
+    Update,
+)
 
 from telegram.ext import (
     ContextTypes,
 )
 
-from database.session import (
-    AsyncSessionLocal,
-)
-
-from keyboards.admin.admin_menu import (
-    get_admin_menu,
-)
-
-from models.source_pack import (
-    PackSource,
+from config.settings import (
+    get_settings,
 )
 
 from bot.constants.buttons import (
     RSS_SOURCES_BUTTON,
 )
 
-logger = logging.getLogger(__name__)
+from keyboards.admin.rss_menu import (
+    get_rss_menu,
+)
+
+settings = get_settings()
 
 
 async def rss_sources_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
-) -> None:
+):
+
+    if update.message is None:
+        return
+
     print(
         "RSS BUTTON:",
         repr(update.message.text)
@@ -41,130 +39,92 @@ async def rss_sources_handler(
         != RSS_SOURCES_BUTTON
     ):
         return
-    
-    async with AsyncSessionLocal() as session:
-        result = await session.execute(
-            select(PackSource)
-            .order_by(
-                PackSource.id.desc()
-            )
-            .limit(20)
+
+    user = update.effective_user
+
+    if user is None:
+        return
+
+    if user.id not in settings.ADMIN_IDS:
+        await update.message.reply_text(
+            text="⛔ Нет доступа",
         )
 
-        sources = (
-            result.scalars().all()
-        )
-
-    # ==============================================
-    # EMPTY LIST
-    # ==============================================
-
-    if not sources:
-        text = (
-            "📰 RSS источники\n\n"
-            "Источников пока нет."
-        )
-
-    # ==============================================
-    # SOURCES LIST
-    # ==============================================
-
-    else:
-        lines = [
-            "📰 RSS источники\n"
-        ]
-
-        for source in sources:
-            lines.append(
-                f"ID: {source.id}\n"
-                f"Пакет: {source.pack_id}\n"
-                f"URL: {source.source_url}\n"
-                f"Активен: "
-                f"{source.is_active}\n"
-            )
-
-        text = "\n".join(lines)
-
-    # ==============================================
-    # HELP
-    # ==============================================
-
-    text += (
-        "\n\n"
-        "Добавить источник:\n"
-        "/add_rss URL PACK_ID"
-    )
+        return
 
     await update.message.reply_text(
-        text=text,
-        reply_markup=(
-            get_admin_menu()
+        text=(
+            "📰 Управление RSS\n\n"
+            "Выберите действие:"
         ),
+        reply_markup=get_rss_menu(),
     )
+
+
+async def rss_callback_handler(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+
+    query = update.callback_query
+
+    if query is None:
+        return
+
+    await query.answer()
+
+    data = query.data
+
+    print(
+        "RSS CALLBACK:",
+        data
+    )
+
+    if data == "rss_add":
+
+        await query.message.reply_text(
+            text=(
+                "➕ Добавление RSS\n\n"
+                "Используйте:\n"
+                "/add_rss RSS_URL PACK_ID"
+            )
+        )
+
+        return
+
+    if data == "rss_list":
+
+        await query.message.reply_text(
+            text=(
+                "📋 Список RSS\n\n"
+                "Скоро здесь появится "
+                "полноценный список RSS."
+            )
+        )
+
+        return
+
+    if data == "rss_refresh":
+
+        await query.message.reply_text(
+            text="🔄 RSS список обновлён"
+        )
+
+        return
 
 
 async def add_rss_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
-) -> None:
-    try:
-        args = context.args
+):
+    """
+    Старый handler пока оставляем.
+    Позже заменим на FSM.
+    """
 
-        # ==========================================
-        # VALIDATION
-        # ==========================================
-
-        if len(args) < 2:
-            await update.message.reply_text(
-                text=(
-                    "Использование:\n"
-                    "/add_rss "
-                    "RSS_URL PACK_ID"
-                ),
-                reply_markup=(
-                    get_admin_menu()
-                ),
-            )
-
-            return
-
-        rss_url = args[0]
-
-        pack_id = int(args[1])
-
-        # ==========================================
-        # CREATE SOURCE
-        # ==========================================
-
-        async with AsyncSessionLocal() as session:
-            source = PackSource(
-                pack_id=pack_id,
-                source_url=rss_url,
-                is_active=True,
-            )
-
-            session.add(source)
-
-            await session.commit()
-
-        await update.message.reply_text(
-            text="✅ RSS источник добавлен",
-            reply_markup=(
-                get_admin_menu()
-            ),
+    await update.message.reply_text(
+        text=(
+            "⚙️ Старый режим add_rss пока активен.\n\n"
+            "Позже заменим на FSM форму."
         )
-
-        logger.info(
-            f"RSS source added: "
-            f"{rss_url}"
-        )
-
-    except Exception as exc:
-        logger.exception(exc)
-
-        await update.message.reply_text(
-            text=f"❌ Ошибка:\n{exc}",
-            reply_markup=(
-                get_admin_menu()
-            ),
-        )
+    )
