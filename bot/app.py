@@ -4,6 +4,7 @@ from telegram.ext import (
     Application,
     CommandHandler,
     MessageHandler,
+    CallbackQueryHandler,
     filters,
 )
 
@@ -41,6 +42,7 @@ from handlers.admin.admin_menu import (
 from handlers.admin.source_management import (
     add_rss_handler,
     rss_sources_handler,
+    rss_callback_handler,
 )
 
 from handlers.admin.pack_management import (
@@ -102,6 +104,13 @@ def create_application() -> Application:
         )
     )
 
+    application.add_handler(
+        CallbackQueryHandler(
+            rss_callback_handler,
+            pattern="^rss_",
+        )
+    )
+    
     application.add_handler(
         CommandHandler(
             "add_rss",
