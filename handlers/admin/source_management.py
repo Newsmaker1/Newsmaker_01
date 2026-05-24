@@ -304,9 +304,65 @@ async def add_rss_handler(
     if update.message is None:
         return
 
+    user = update.effective_user
+
+    if user is None:
+        return
+
+    if user.id not in settings.ADMIN_IDS:
+
+        await update.message.reply_text(
+            text="⛔ Нет доступа"
+        )
+
+        return
+
+    args = context.args
+
+    if len(args) < 2:
+
+        await update.message.reply_text(
+            text=(
+                "❌ Неверный формат\n\n"
+                "Используйте:\n"
+                "/add_rss RSS_URL PACK_ID"
+            )
+        )
+
+        return
+
+    rss_url = args[0]
+
+    try:
+        pack_id = int(args[1])
+
+    except ValueError:
+
+        await update.message.reply_text(
+            text="❌ PACK_ID должен быть числом"
+        )
+
+        return
+
+    async with AsyncSessionLocal() as session:
+
+        source = PackSource(
+            pack_id=pack_id,
+            source_url=rss_url,
+            is_active=True,
+        )
+
+        session.add(source)
+
+        await session.commit()
+
+        await session.refresh(source)
+
     await update.message.reply_text(
         text=(
-            "⚙️ Старый режим add_rss пока активен.\n\n"
-            "Позже заменим на FSM форму."
+            "✅ RSS успешно добавлен\n\n"
+            f"ID: {source.id}\n"
+            f"PACK: {source.pack_id}\n"
+            f"{source.source_url}"
         )
     )
