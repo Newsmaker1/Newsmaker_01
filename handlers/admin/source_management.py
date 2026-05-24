@@ -167,6 +167,17 @@ async def rss_callback_handler(
 
         user_id = query.from_user.id
 
+        if user_id in RSS_ADD_STATE:
+
+            await query.message.reply_text(
+                text=(
+                    "⚠️ Вы уже добавляете RSS.\n\n"
+                    "Сначала завершите текущий процесс."
+                )
+            )
+
+            return
+
         RSS_ADD_STATE[user_id] = {
             "step": "waiting_url"
         }
@@ -335,11 +346,12 @@ async def add_rss_handler(
             ("http://", "https://")
         ):
 
+            del RSS_ADD_STATE[user_id]
+
             await update.message.reply_text(
                 text=(
                     "❌ Некорректный URL\n\n"
-                    "URL должен начинаться с:\n"
-                    "http:// или https://"
+                    "Начните добавление заново."
                 )
             )
 
@@ -369,9 +381,12 @@ async def add_rss_handler(
 
         except ValueError:
 
+            del RSS_ADD_STATE[user_id]
+
             await update.message.reply_text(
                 text=(
-                    "❌ PACK ID должен быть числом"
+                    "❌ PACK ID должен быть числом\n\n"
+                    "Начните добавление заново."
                 )
             )
 
@@ -388,9 +403,12 @@ async def add_rss_handler(
 
             if not pack:
 
+                del RSS_ADD_STATE[user_id]
+
                 await update.message.reply_text(
                     text=(
-                        "❌ PACK ID не существует"
+                        "❌ PACK ID не существует\n\n"
+                        "Начните добавление заново."
                     )
                 )
 
