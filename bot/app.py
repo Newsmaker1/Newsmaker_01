@@ -2,9 +2,9 @@ import logging
 
 from telegram.ext import (
     Application,
+    CallbackQueryHandler,
     CommandHandler,
     MessageHandler,
-    CallbackQueryHandler,
     filters,
 )
 
@@ -18,11 +18,6 @@ from config.settings import (
 
 from bot.constants.buttons import (
     ADMIN_BUTTON,
-    RSS_SOURCES_BUTTON,
-    SOURCE_PACKS_BUTTON,
-    DESTINATIONS_BUTTON,
-    STATISTICS_BUTTON,
-    BACK_BUTTON,
 )
 
 # ==================================================
@@ -43,14 +38,14 @@ from handlers.admin.admin_menu import (
 
 from handlers.admin.source_management import (
     add_rss_handler,
-    rss_sources_handler,
     rss_callback_handler,
+    rss_sources_handler,
 )
 
 from handlers.admin.pack_management import (
     add_pack_handler,
-    source_packs_handler,
     pack_callback_handler,
+    source_packs_handler,
 )
 
 from handlers.admin.destination_management import (
@@ -91,7 +86,8 @@ def create_application() -> Application:
         CommandHandler(
             "start",
             start_handler,
-        )
+        ),
+        group=0,
     )
 
     # ==================================================
@@ -104,7 +100,8 @@ def create_application() -> Application:
                 f"^{ADMIN_BUTTON}$"
             ),
             admin_menu_handler,
-        )
+        ),
+        group=1,
     )
 
     # ==================================================
@@ -117,14 +114,16 @@ def create_application() -> Application:
                 "^📰 RSS Источники$"
             ),
             rss_sources_handler,
-        )
+        ),
+        group=1,
     )
 
     application.add_handler(
         CallbackQueryHandler(
             rss_callback_handler,
             pattern="^rss_",
-        )
+        ),
+        group=2,
     )
 
     # ==================================================
@@ -137,16 +136,18 @@ def create_application() -> Application:
                 "^📦 Пакеты источников$"
             ),
             source_packs_handler,
-        )
+        ),
+        group=1,
     )
 
     application.add_handler(
         CallbackQueryHandler(
             pack_callback_handler,
             pattern="^pack_",
-        )
+        ),
+        group=2,
     )
-    
+
     # ==================================================
     # DESTINATIONS
     # ==================================================
@@ -157,9 +158,9 @@ def create_application() -> Application:
                 "^📬 Каналы публикации$"
             ),
             destinations_handler,
-        )
+        ),
+        group=1,
     )
-
 
     # ==================================================
     # STATISTICS
@@ -171,7 +172,8 @@ def create_application() -> Application:
                 "^📊 Статистика$"
             ),
             statistics_handler,
-        )
+        ),
+        group=1,
     )
 
     # ==================================================
@@ -184,7 +186,8 @@ def create_application() -> Application:
                 "^⬅️ Назад$"
             ),
             back_handler,
-        )
+        ),
+        group=1,
     )
 
     # ==================================================
@@ -195,16 +198,26 @@ def create_application() -> Application:
         MessageHandler(
             filters.TEXT & ~filters.COMMAND,
             add_rss_handler,
-        )
+        ),
+        group=99,
     )
 
     application.add_handler(
         MessageHandler(
             filters.TEXT & ~filters.COMMAND,
             add_pack_handler,
-        )
+        ),
+        group=99,
     )
-    
+
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
+            add_destination_handler,
+        ),
+        group=99,
+    )
+
     # ==================================================
     # LOGGING
     # ==================================================
