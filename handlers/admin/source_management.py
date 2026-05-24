@@ -20,6 +20,7 @@ from database.session import (
 
 from models.source_pack import (
     PackSource,
+    SourcePack,
 )
 
 from bot.constants.buttons import (
@@ -330,14 +331,26 @@ async def add_rss_handler(
 
         rss_url = update.message.text.strip()
 
+        if not rss_url.startswith(
+            ("http://", "https://")
+        ):
+
+            await update.message.reply_text(
+                text=(
+                    "❌ Некорректный URL\n\n"
+                    "URL должен начинаться с:\n"
+                    "http:// или https://"
+                )
+            )
+
+            return
+
         state["rss_url"] = rss_url
 
         state["step"] = "waiting_pack"
 
         await update.message.reply_text(
-            text=(
-                "📦 Теперь введите PACK ID:"
-            )
+            text="📦 Теперь введите PACK ID:"
         )
 
         return
@@ -349,6 +362,7 @@ async def add_rss_handler(
     if state["step"] == "waiting_pack":
 
         try:
+
             pack_id = int(
                 update.message.text.strip()
             )
@@ -366,6 +380,21 @@ async def add_rss_handler(
         rss_url = state["rss_url"]
 
         async with AsyncSessionLocal() as session:
+
+            pack = await session.get(
+                SourcePack,
+                pack_id,
+            )
+
+            if not pack:
+
+                await update.message.reply_text(
+                    text=(
+                        "❌ PACK ID не существует"
+                    )
+                )
+
+                return
 
             source = PackSource(
                 pack_id=pack_id,
