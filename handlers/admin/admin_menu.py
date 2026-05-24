@@ -16,13 +16,15 @@ from bot.constants.buttons import (
     ADMIN_BUTTON,
 )
 
-settings = get_settings()
-
 
 async def admin_menu_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
 ) -> None:
+
+    if update.message is None:
+        return
+
     print(
         "ADMIN BUTTON:",
         repr(update.message.text)
@@ -33,11 +35,23 @@ async def admin_menu_handler(
         != ADMIN_BUTTON
     ):
         return
-    
+
+    settings = get_settings()
+
     user = update.effective_user
 
     if user is None:
         return
+
+    print(
+        "USER ID:",
+        user.id
+    )
+
+    print(
+        "ADMIN IDS:",
+        settings.ADMIN_IDS
+    )
 
     if user.id not in settings.ADMIN_IDS:
         await update.message.reply_text(
