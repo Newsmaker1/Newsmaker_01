@@ -114,7 +114,7 @@ def create_application() -> Application:
     application.add_handler(
         MessageHandler(
             filters.Regex(
-                f"^{RSS_SOURCES_BUTTON}$"
+                "^📰 RSS Источники$"
             ),
             rss_sources_handler,
         )
@@ -124,13 +124,6 @@ def create_application() -> Application:
         CallbackQueryHandler(
             rss_callback_handler,
             pattern="^rss_",
-        )
-    )
-
-    application.add_handler(
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND,
-            add_rss_handler,
         )
     )
 
@@ -153,13 +146,6 @@ def create_application() -> Application:
             pattern="^pack_",
         )
     )
-
-    application.add_handler(
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND,
-            add_pack_handler,
-        )
-    )
     
     # ==================================================
     # DESTINATIONS
@@ -168,18 +154,12 @@ def create_application() -> Application:
     application.add_handler(
         MessageHandler(
             filters.Regex(
-                f"^{DESTINATIONS_BUTTON}$"
+                "^📬 Каналы публикации$"
             ),
             destinations_handler,
         )
     )
 
-    application.add_handler(
-        CommandHandler(
-            "add_destination",
-            add_destination_handler,
-        )
-    )
 
     # ==================================================
     # STATISTICS
@@ -188,7 +168,7 @@ def create_application() -> Application:
     application.add_handler(
         MessageHandler(
             filters.Regex(
-                f"^{STATISTICS_BUTTON}$"
+                "^📊 Статистика$"
             ),
             statistics_handler,
         )
@@ -201,12 +181,30 @@ def create_application() -> Application:
     application.add_handler(
         MessageHandler(
             filters.Regex(
-                f"^{BACK_BUTTON}$"
+                "^⬅️ Назад$"
             ),
             back_handler,
         )
     )
 
+    # ==================================================
+    # FSM HANDLERS
+    # ==================================================
+
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
+            add_rss_handler,
+        )
+    )
+
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
+            add_pack_handler,
+        )
+    )
+    
     # ==================================================
     # LOGGING
     # ==================================================
