@@ -140,7 +140,9 @@ def create_application() -> Application:
 
     application.add_handler(
         MessageHandler(
-            filters.TEXT,
+            filters.Regex(
+                "^📦 Пакеты источников$"
+            ),
             source_packs_handler,
         )
     )
@@ -158,7 +160,7 @@ def create_application() -> Application:
             add_pack_handler,
         )
     )
-
+    
     # ==================================================
     # DESTINATIONS
     # ==================================================
