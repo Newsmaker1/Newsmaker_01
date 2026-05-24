@@ -55,6 +55,14 @@ from handlers.admin.destination_management import (
     destinations_handler,
 )
 
+from handlers.admin.statistics import (
+    statistics_handler,
+)
+
+from handlers.admin.back import (
+    back_handler,
+)
+
 logger = logging.getLogger(__name__)
 
 settings = get_settings()
@@ -154,6 +162,28 @@ def create_application() -> Application:
         )
     )
 
+    # ==================================================
+    # STATISTICS
+    # ==================================================
+
+    application.add_handler(
+        MessageHandler(
+            filters.Regex(f"^{STATISTICS_BUTTON}$"),
+            statistics_handler,
+        )
+    )
+
+    # ==================================================
+    # BACK
+    # ==================================================
+
+    application.add_handler(
+        MessageHandler(
+            filters.Regex(f"^{BACK_BUTTON}$"),
+            back_handler,
+        )
+    )
+    
     # ==================================================
     # LOGGING
     # ==================================================
