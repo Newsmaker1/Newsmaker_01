@@ -44,5 +44,5 @@ def get_admin_menu():
     return ReplyKeyboardMarkup(
         keyboard=keyboard,
         resize_keyboard=True,
-        is_persistent=True,
+        one_time_keyboard=False,
     )
