@@ -21,6 +21,8 @@ from bot.constants.buttons import (
     RSS_SOURCES_BUTTON,
     SOURCE_PACKS_BUTTON,
     DESTINATIONS_BUTTON,
+    STATISTICS_BUTTON,
+    BACK_BUTTON,
 )
 
 # ==================================================
