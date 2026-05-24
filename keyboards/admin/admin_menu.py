@@ -13,30 +13,31 @@ from bot.constants.buttons import (
 
 
 def get_admin_menu():
+
     keyboard = [
         [
             KeyboardButton(
-                RSS_SOURCES_BUTTON
+                text="📰 RSS Источники"
             )
         ],
         [
             KeyboardButton(
-                SOURCE_PACKS_BUTTON
+                text="📦 Пакеты источников"
             )
         ],
         [
             KeyboardButton(
-                DESTINATIONS_BUTTON
+                text="📬 Каналы публикации"
             )
         ],
         [
             KeyboardButton(
-                STATISTICS_BUTTON
+                text="📊 Статистика"
             )
         ],
         [
             KeyboardButton(
-                BACK_BUTTON
+                text="⬅️ Назад"
             )
         ],
     ]
@@ -45,4 +46,5 @@ def get_admin_menu():
         keyboard=keyboard,
         resize_keyboard=True,
         one_time_keyboard=False,
+        selective=False,
     )
