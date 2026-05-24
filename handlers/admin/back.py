@@ -6,10 +6,6 @@ from telegram.ext import (
     ContextTypes,
 )
 
-from keyboards.main_menu import (
-    get_main_menu,
-)
-
 from bot.constants.buttons import (
     BACK_BUTTON,
 )
@@ -30,6 +26,5 @@ async def back_handler(
         return
 
     await update.message.reply_text(
-        text="🏠 Главное меню",
-        reply_markup=get_main_menu(),
+        text="🏠 Главное меню"
     )
