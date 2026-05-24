@@ -1,8 +1,15 @@
 from functools import lru_cache
 from typing import List
 
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import (
+    Field,
+    field_validator,
+)
+
+from pydantic_settings import (
+    BaseSettings,
+    SettingsConfigDict,
+)
 
 
 class Settings(BaseSettings):
@@ -10,7 +17,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
-        extra="ignore"
+        extra="ignore",
     )
 
     # =========================
@@ -29,7 +36,32 @@ class Settings(BaseSettings):
     # ADMIN
     # =========================
 
-    ADMIN_IDS: List[int] = Field(default_factory=list)
+    ADMIN_IDS: List[int] = Field(
+        default_factory=list
+    )
+
+    @field_validator(
+        "ADMIN_IDS",
+        mode="before",
+    )
+    @classmethod
+    def parse_admin_ids(cls, value):
+        """
+        Поддерживает Railway env форматы:
+
+        ADMIN_IDS=123456789
+
+        ADMIN_IDS=123456789,987654321
+        """
+
+        if isinstance(value, str):
+            return [
+                int(admin_id.strip())
+                for admin_id in value.split(",")
+                if admin_id.strip()
+            ]
+
+        return value
 
     # =========================
     # APP
