@@ -46,14 +46,12 @@ class Settings(BaseSettings):
     )
     @classmethod
     def parse_admin_ids(cls, value):
-        """
-        Поддерживает Railway env форматы:
 
-        ADMIN_IDS=123456789
+        # Railway может передать int
+        if isinstance(value, int):
+            return [value]
 
-        ADMIN_IDS=123456789,987654321
-        """
-
+        # Railway может передать string
         if isinstance(value, str):
             return [
                 int(admin_id.strip())
