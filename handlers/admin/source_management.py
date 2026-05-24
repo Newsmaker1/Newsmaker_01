@@ -30,6 +30,10 @@ from keyboards.admin.rss_menu import (
     get_rss_menu,
 )
 
+from states.rss_state import (
+    RSS_ADD_STATE,
+)
+
 settings = get_settings()
 
 
@@ -40,11 +44,6 @@ async def rss_sources_handler(
 
     if update.message is None:
         return
-
-    print(
-        "RSS BUTTON:",
-        repr(update.message.text)
-    )
 
     if (
         update.message.text
@@ -58,6 +57,7 @@ async def rss_sources_handler(
         return
 
     if user.id not in settings.ADMIN_IDS:
+
         await update.message.reply_text(
             text="⛔ Нет доступа",
         )
@@ -85,6 +85,7 @@ async def build_rss_list_text():
         sources = result.scalars().all()
 
     if not sources:
+
         return (
             "📭 RSS источники отсутствуют",
             None,
@@ -163,11 +164,16 @@ async def rss_callback_handler(
 
     if data == "rss_add":
 
+        user_id = query.from_user.id
+
+        RSS_ADD_STATE[user_id] = {
+            "step": "waiting_url"
+        }
+
         await query.message.reply_text(
             text=(
                 "➕ Добавление RSS\n\n"
-                "Используйте команду:\n\n"
-                "/add_rss RSS_URL PACK_ID"
+                "Введите RSS URL:"
             )
         )
 
@@ -309,60 +315,77 @@ async def add_rss_handler(
     if user is None:
         return
 
-    if user.id not in settings.ADMIN_IDS:
+    user_id = user.id
 
-        await update.message.reply_text(
-            text="⛔ Нет доступа"
-        )
-
+    if user_id not in RSS_ADD_STATE:
         return
 
-    args = context.args
+    state = RSS_ADD_STATE[user_id]
 
-    if len(args) < 2:
+    # ==========================================
+    # WAITING URL
+    # ==========================================
+
+    if state["step"] == "waiting_url":
+
+        rss_url = update.message.text.strip()
+
+        state["rss_url"] = rss_url
+
+        state["step"] = "waiting_pack"
 
         await update.message.reply_text(
             text=(
-                "❌ Неверный формат\n\n"
-                "Используйте:\n"
-                "/add_rss RSS_URL PACK_ID"
+                "📦 Теперь введите PACK ID:"
             )
         )
 
         return
 
-    rss_url = args[0]
+    # ==========================================
+    # WAITING PACK
+    # ==========================================
 
-    try:
-        pack_id = int(args[1])
+    if state["step"] == "waiting_pack":
 
-    except ValueError:
+        try:
+            pack_id = int(
+                update.message.text.strip()
+            )
+
+        except ValueError:
+
+            await update.message.reply_text(
+                text=(
+                    "❌ PACK ID должен быть числом"
+                )
+            )
+
+            return
+
+        rss_url = state["rss_url"]
+
+        async with AsyncSessionLocal() as session:
+
+            source = PackSource(
+                pack_id=pack_id,
+                source_url=rss_url,
+                is_active=True,
+            )
+
+            session.add(source)
+
+            await session.commit()
+
+            await session.refresh(source)
+
+        del RSS_ADD_STATE[user_id]
 
         await update.message.reply_text(
-            text="❌ PACK_ID должен быть числом"
+            text=(
+                "✅ RSS успешно добавлен\n\n"
+                f"ID: {source.id}\n"
+                f"PACK: {source.pack_id}\n"
+                f"{source.source_url}"
+            )
         )
-
-        return
-
-    async with AsyncSessionLocal() as session:
-
-        source = PackSource(
-            pack_id=pack_id,
-            source_url=rss_url,
-            is_active=True,
-        )
-
-        session.add(source)
-
-        await session.commit()
-
-        await session.refresh(source)
-
-    await update.message.reply_text(
-        text=(
-            "✅ RSS успешно добавлен\n\n"
-            f"ID: {source.id}\n"
-            f"PACK: {source.pack_id}\n"
-            f"{source.source_url}"
-        )
-    )
