@@ -140,9 +140,7 @@ def create_application() -> Application:
 
     application.add_handler(
         MessageHandler(
-            filters.Regex(
-                f"^{SOURCE_PACKS_BUTTON}$"
-            ),
+            filters.TEXT,
             source_packs_handler,
         )
     )
