@@ -73,6 +73,71 @@ async def rss_sources_handler(
     )
 
 
+async def build_rss_list_text():
+
+    async with AsyncSessionLocal() as session:
+
+        result = await session.execute(
+            select(PackSource)
+            .order_by(PackSource.id.desc())
+        )
+
+        sources = result.scalars().all()
+
+    if not sources:
+        return (
+            "📭 RSS источники отсутствуют",
+            None,
+        )
+
+    text = "📋 Список RSS\n\n"
+
+    keyboard = []
+
+    for source in sources:
+
+        status = (
+            "🟢 ACTIVE"
+            if source.is_active
+            else "🔴 DISABLED"
+        )
+
+        text += (
+            f"{status}\n"
+            f"ID: {source.id}\n"
+            f"PACK: {source.pack_id}\n"
+            f"{source.source_url}\n\n"
+        )
+
+        toggle_text = (
+            "🔴 Disable"
+            if source.is_active
+            else "🟢 Enable"
+        )
+
+        keyboard.append(
+            [
+                InlineKeyboardButton(
+                    text=toggle_text,
+                    callback_data=(
+                        f"rss_toggle_{source.id}"
+                    ),
+                ),
+                InlineKeyboardButton(
+                    text=f"❌ Delete #{source.id}",
+                    callback_data=(
+                        f"rss_delete_{source.id}"
+                    ),
+                ),
+            ]
+        )
+
+    return (
+        text[:4000],
+        InlineKeyboardMarkup(keyboard),
+    )
+
+
 async def rss_callback_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -114,57 +179,58 @@ async def rss_callback_handler(
 
     if data == "rss_list":
 
-        async with AsyncSessionLocal() as session:
-
-            result = await session.execute(
-                select(PackSource)
-                .order_by(PackSource.id.desc())
-            )
-
-            sources = result.scalars().all()
-
-        if not sources:
-
-            await query.message.reply_text(
-                text="📭 RSS источники отсутствуют"
-            )
-
-            return
-
-        text = "📋 Список RSS\n\n"
-
-        keyboard = []
-
-        for source in sources:
-
-            status = (
-                "🟢"
-                if source.is_active
-                else "🔴"
-            )
-
-            text += (
-                f"{status} ID: {source.id}\n"
-                f"PACK: {source.pack_id}\n"
-                f"{source.source_url}\n\n"
-            )
-
-            keyboard.append(
-                [
-                    InlineKeyboardButton(
-                        text=f"❌ Удалить #{source.id}",
-                        callback_data=(
-                            f"rss_delete_{source.id}"
-                        ),
-                    )
-                ]
-            )
+        text, keyboard = (
+            await build_rss_list_text()
+        )
 
         await query.message.reply_text(
-            text=text[:4000],
-            reply_markup=InlineKeyboardMarkup(
-                keyboard
-            ),
+            text=text,
+            reply_markup=keyboard,
+        )
+
+        return
+
+    # ==========================================
+    # TOGGLE RSS
+    # ==========================================
+
+    if data.startswith("rss_toggle_"):
+
+        source_id = int(
+            data.replace(
+                "rss_toggle_",
+                ""
+            )
+        )
+
+        async with AsyncSessionLocal() as session:
+
+            source = await session.get(
+                PackSource,
+                source_id,
+            )
+
+            if not source:
+
+                await query.message.reply_text(
+                    text="❌ RSS не найден"
+                )
+
+                return
+
+            source.is_active = (
+                not source.is_active
+            )
+
+            await session.commit()
+
+        text, keyboard = (
+            await build_rss_list_text()
+        )
+
+        await query.message.edit_text(
+            text=text,
+            reply_markup=keyboard,
         )
 
         return
@@ -201,10 +267,13 @@ async def rss_callback_handler(
 
             await session.commit()
 
-        await query.message.reply_text(
-            text=(
-                f"✅ RSS #{source_id} удалён"
-            )
+        text, keyboard = (
+            await build_rss_list_text()
+        )
+
+        await query.message.edit_text(
+            text=text,
+            reply_markup=keyboard,
         )
 
         return
@@ -215,8 +284,13 @@ async def rss_callback_handler(
 
     if data == "rss_refresh":
 
+        text, keyboard = (
+            await build_rss_list_text()
+        )
+
         await query.message.reply_text(
-            text="🔄 RSS список обновлён"
+            text=text,
+            reply_markup=keyboard,
         )
 
         return
