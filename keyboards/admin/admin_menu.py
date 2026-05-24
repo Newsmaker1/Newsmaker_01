@@ -46,5 +46,4 @@ def get_admin_menu():
         keyboard=keyboard,
         resize_keyboard=True,
         one_time_keyboard=False,
-        selective=False,
     )
