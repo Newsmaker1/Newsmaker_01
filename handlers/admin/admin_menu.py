@@ -1,3 +1,5 @@
+import logging
+
 from telegram import Update
 
 from telegram.ext import (
@@ -17,6 +19,15 @@ from bot.constants.buttons import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+settings = get_settings()
+
+
+# ==================================================
+# ADMIN MENU
+# ==================================================
+
 async def admin_menu_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -25,45 +36,52 @@ async def admin_menu_handler(
     if update.message is None:
         return
 
-    print(
-        "ADMIN BUTTON:",
-        repr(update.message.text)
-    )
-
     if (
         update.message.text
         != ADMIN_BUTTON
     ):
         return
 
-    settings = get_settings()
-
     user = update.effective_user
 
     if user is None:
         return
 
-    print(
-        "USER ID:",
-        user.id
-    )
-
-    print(
-        "ADMIN IDS:",
-        settings.ADMIN_IDS
-    )
+    # ==============================================
+    # ACCESS CHECK
+    # ==============================================
 
     if user.id not in settings.ADMIN_IDS:
+
+        logger.warning(
+            f"Unauthorized admin access: "
+            f"{user.id}"
+        )
+
         await update.message.reply_text(
             text="⛔ Нет доступа",
         )
 
         return
 
+    # ==============================================
+    # OPEN ADMIN PANEL
+    # ==============================================
+
+    logger.info(
+        f"Admin panel opened: "
+        f"{user.id}"
+    )
+
     await update.message.reply_text(
+
         text=(
+
             "🛠 Панель администратора\n\n"
-            "Выберите действие:"
+
+            "Выберите раздел:"
+
         ),
+
         reply_markup=get_admin_menu(),
     )
