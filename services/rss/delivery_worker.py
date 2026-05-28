@@ -37,11 +37,21 @@ class DeliveryWorker:
             result = await session.execute(
                 select(Delivery)
                 .where(
-                    Delivery.status.in_(
-                        [
-                            DeliveryStatus.PENDING,
-                            DeliveryStatus.RETRY,
-                        ]
+                    (
+                        Delivery.status
+                        == DeliveryStatus.PENDING
+                    )
+                    |
+                    (
+                        (
+                            Delivery.status
+                            == DeliveryStatus.RETRY
+                        )
+                        &
+                        (
+                            Delivery.next_retry_at
+                            <= datetime.utcnow()
+                        )
                     )
                 )
                 .order_by(
