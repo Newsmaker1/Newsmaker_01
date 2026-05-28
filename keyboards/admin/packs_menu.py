@@ -4,21 +4,32 @@ from telegram import (
 )
 
 
+# ==================================================
+# PACKS MENU
+# ==================================================
+
 def get_packs_menu():
 
     keyboard = [
+
         [
+
             InlineKeyboardButton(
-                text="➕ Добавить PACK",
+                text="➕ Создать пакет",
                 callback_data="pack_add",
             )
+
         ],
+
         [
+
             InlineKeyboardButton(
-                text="📋 Список PACKS",
+                text="📋 Список пакетов",
                 callback_data="pack_list",
             )
+
         ],
+
     ]
 
     return InlineKeyboardMarkup(
