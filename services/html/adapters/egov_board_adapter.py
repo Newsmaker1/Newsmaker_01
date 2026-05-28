@@ -4,12 +4,20 @@ from urllib.parse import (
 
 from bs4 import BeautifulSoup
 
+from services.html.attachment_extractor import (
+    HTMLAttachmentExtractor,
+)
+
 from services.html.base_adapter import (
     BaseHTMLAdapter,
 )
 
 from services.html.date_parser import (
     HTMLDateParser,
+)
+
+from services.html.link_filter import (
+    HTMLLinkFilter,
 )
 
 
@@ -62,16 +70,26 @@ class EGovBoardAdapter(
                 href,
             )
 
+            # ==========================================
+            # LINK FILTER
+            # ==========================================
+
             if not (
                 HTMLLinkFilter.is_valid_link(
                     full_url
                 )
             ):
                 continue
-            
+
+            # ==========================================
+            # UNIQUE LINKS
+            # ==========================================
+
             if full_url not in links:
-            
-                links.append(full_url)
+
+                links.append(
+                    full_url
+                )
 
         return links[:50]
 
@@ -102,6 +120,7 @@ class EGovBoardAdapter(
                 "iframe",
             ]
         ):
+
             tag.decompose()
 
         # ==============================================
@@ -113,8 +132,11 @@ class EGovBoardAdapter(
         title_selectors = [
 
             ".board_view_title",
+
             ".view_tit",
+
             ".bbsViewTitle",
+
             ".title",
 
         ]
@@ -125,17 +147,16 @@ class EGovBoardAdapter(
                 selector
             )
 
-            if node:
+            if not node:
+                continue
 
-                title = (
-                    node.get_text(
-                        " ",
-                        strip=True,
-                    )
-                )
+            title = node.get_text(
+                " ",
+                strip=True,
+            )
 
-                if title:
-                    break
+            if title:
+                break
 
         # ==============================================
         # CONTENT
@@ -146,9 +167,13 @@ class EGovBoardAdapter(
         content_selectors = [
 
             ".board_view_con",
+
             ".view_cont",
+
             ".bbsView",
+
             ".content",
+
             "#contents",
 
         ]
@@ -210,13 +235,24 @@ class EGovBoardAdapter(
                 )
 
         # ==============================================
+        # ATTACHMENTS
+        # ==============================================
+
+        attachments = (
+            HTMLAttachmentExtractor.extract(
+                html=html,
+                article_url=article_url,
+            )
+        )
+
+        # ==============================================
         # DATE
         # ==============================================
 
         published_at = None
 
         possible_date_nodes = soup.find_all(
-            text=True
+            string=True
         )
 
         for text in possible_date_nodes:
@@ -235,6 +271,10 @@ class EGovBoardAdapter(
 
                 break
 
+        # ==============================================
+        # RESULT
+        # ==============================================
+
         return {
 
             "title": title,
@@ -244,5 +284,7 @@ class EGovBoardAdapter(
             "image_url": image_url,
 
             "published_at": published_at,
+
+            "attachments": attachments,
 
         }
