@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import (
     Boolean,
     DateTime,
+    Enum,
     ForeignKey,
     String,
     Text,
@@ -17,8 +18,13 @@ from sqlalchemy.orm import (
 
 from database.base import Base
 
+from models.source_type import (
+    SourceType,
+)
+
 
 class SourcePack(Base):
+
     __tablename__ = "source_packs"
 
     id: Mapped[int] = mapped_column(
@@ -66,6 +72,7 @@ class SourcePack(Base):
 
 
 class PackSource(Base):
+
     __tablename__ = "pack_sources"
 
     __table_args__ = (
@@ -82,7 +89,10 @@ class PackSource(Base):
     )
 
     pack_id: Mapped[int] = mapped_column(
-        ForeignKey("source_packs.id", ondelete="CASCADE"),
+        ForeignKey(
+            "source_packs.id",
+            ondelete="CASCADE"
+        ),
         nullable=False,
         index=True
     )
@@ -93,16 +103,59 @@ class PackSource(Base):
         index=True
     )
 
+    # ==================================================
+    # SOURCE TYPE
+    # ==================================================
+
+    source_type: Mapped[SourceType] = mapped_column(
+        Enum(SourceType),
+        default=SourceType.RSS,
+        nullable=False,
+        index=True
+    )
+
+    # ==================================================
+    # TRANSLATION
+    # ==================================================
+
+    translation_enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+
+    # ==================================================
+    # PARSER
+    # ==================================================
+
+    parser_type: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True
+    )
+
+    # ==================================================
+    # CATEGORY
+    # ==================================================
+
     category: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True
     )
 
+    # ==================================================
+    # ACTIVE
+    # ==================================================
+
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         default=True,
-        nullable=False
+        nullable=False,
+        index=True
     )
+
+    # ==================================================
+    # RELATIONSHIP
+    # ==================================================
 
     pack = relationship(
         "SourcePack",
