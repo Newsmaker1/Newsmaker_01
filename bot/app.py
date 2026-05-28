@@ -51,6 +51,7 @@ from handlers.admin.pack_management import (
 from handlers.admin.destination_management import (
     add_destination_handler,
     destinations_handler,
+    destination_callback_handler,
 )
 
 from handlers.admin.statistics import (
@@ -161,7 +162,15 @@ def create_application() -> Application:
         ),
         group=1,
     )
-
+    
+    application.add_handler(
+        CallbackQueryHandler(
+            destination_callback_handler,
+            pattern="^destination_",
+        ),
+        group=2,
+    )
+    
     # ==================================================
     # STATISTICS
     # ==================================================
