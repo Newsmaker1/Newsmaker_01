@@ -41,6 +41,59 @@ class AdapterRegistry:
         return adapter_class()
 
     # ==================================================
+    # GET FALLBACKS
+    # ==================================================
+
+    @classmethod
+    def get_fallback_adapters(
+        cls,
+        strategy: str | None,
+    ) -> list:
+
+        fallback_order = [
+
+            "default",
+
+        ]
+
+        adapters = []
+
+        used = set()
+
+        # ==============================================
+        # PRIMARY
+        # ==============================================
+
+        if (
+            strategy
+            and strategy
+            in cls._adapters
+        ):
+
+            adapters.append(
+                cls.get_adapter(
+                    strategy
+                )
+            )
+
+            used.add(strategy)
+
+        # ==============================================
+        # FALLBACKS
+        # ==============================================
+
+        for name in fallback_order:
+
+            if name in used:
+                continue
+
+            adapters.append(
+                cls.get_adapter(name)
+            )
+
+        return adapters
+
+    # ==================================================
     # REGISTER
     # ==================================================
 
