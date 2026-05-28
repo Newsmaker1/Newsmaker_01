@@ -62,11 +62,16 @@ class EGovBoardAdapter(
                 href,
             )
 
-            if full_url not in links:
-
-                links.append(
+            if not (
+                HTMLLinkFilter.is_valid_link(
                     full_url
                 )
+            ):
+                continue
+            
+            if full_url not in links:
+            
+                links.append(full_url)
 
         return links[:50]
 
