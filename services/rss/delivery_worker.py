@@ -35,6 +35,10 @@ from models.post import (
     Post,
 )
 
+from models.attachment import (
+    Attachment,
+)
+
 from services.rss.formatter import (
     TelegramFormatter,
 )
@@ -174,6 +178,39 @@ class DeliveryWorker:
 
             delivery, post, destination = row
 
+            # ==========================================
+            # LOAD ATTACHMENTS
+            # ==========================================
+            
+            attachments_result = (
+                await session.execute(
+                    select(Attachment).where(
+                        Attachment.post_id
+                        == post.id
+                    )
+                )
+            )
+            
+            attachment_rows = (
+                attachments_result
+                .scalars()
+                .all()
+            )
+            
+            attachments = []
+            
+            for item in attachment_rows:
+            
+                attachments.append({
+            
+                    "file_name": item.file_name,
+            
+                    "file_url": item.file_url,
+            
+                    "file_type": item.file_type,
+            
+                })
+            
             # ==========================================
             # ALREADY DELIVERED
             # ==========================================
