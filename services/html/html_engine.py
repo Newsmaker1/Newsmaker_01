@@ -1,5 +1,9 @@
 import logging
 
+from services.html.adapter_detector import (
+    AdapterDetector,
+)
+
 from services.html.adapter_registry import (
     AdapterRegistry,
 )
@@ -10,10 +14,6 @@ from services.html.validator import (
 
 from services.rss.fetcher import (
     RSSFetcher,
-)
-
-from services.html.adapter_detector import (
-    AdapterDetector,
 )
 
 
@@ -40,49 +40,6 @@ class HTMLEngine:
         logger.info(
             f"Processing HTML source: "
             f"{source.source_url}"
-        )
-
-        # ==============================================
-        # GET ADAPTER
-        # ==============================================
-
-        strategy = (
-            source.parser_strategy
-        )
-        
-        # ==============================================
-        # AUTO DETECTION
-        # ==============================================
-        
-        if (
-            not strategy
-            or strategy == "auto"
-        ):
-        
-            detected_strategy = (
-                AdapterDetector.detect_strategy(
-                    html=result["content"],
-                    source_url=(
-                        source.source_url
-                    ),
-                )
-            )
-        
-            logger.info(
-                f"Detected adapter strategy: "
-                f"{detected_strategy}"
-            )
-        
-            strategy = detected_strategy
-        
-        # ==============================================
-        # GET ADAPTER
-        # ==============================================
-        
-        adapter = (
-            AdapterRegistry.get_adapter(
-                strategy
-            )
         )
 
         # ==============================================
@@ -114,6 +71,50 @@ class HTMLEngine:
             )
 
             return []
+
+        # ==============================================
+        # DETECT STRATEGY
+        # ==============================================
+
+        strategy = (
+            source.parser_strategy
+        )
+
+        if (
+            not strategy
+            or strategy == "auto"
+        ):
+
+            detected_strategy = (
+                AdapterDetector.detect_strategy(
+                    html=html,
+                    source_url=(
+                        source.source_url
+                    ),
+                )
+            )
+
+            logger.info(
+                f"Detected adapter strategy: "
+                f"{detected_strategy}"
+            )
+
+            strategy = detected_strategy
+
+        # ==============================================
+        # GET ADAPTER
+        # ==============================================
+
+        adapter = (
+            AdapterRegistry.get_adapter(
+                strategy
+            )
+        )
+
+        logger.info(
+            f"Using adapter: "
+            f"{adapter.__class__.__name__}"
+        )
 
         # ==============================================
         # EXTRACT LINKS
