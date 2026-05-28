@@ -17,6 +17,10 @@ from services.rss.fetcher import (
 )
 
 
+from services.html.rate_limiter import (
+    HTMLRateLimiter,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -46,6 +50,8 @@ class HTMLEngine:
         # FETCH LIST PAGE
         # ==============================================
 
+        await HTMLRateLimiter.wait()
+        
         result = await self.fetcher.fetch(
             source.source_url
         )
@@ -201,6 +207,8 @@ class HTMLEngine:
         article_url: str,
     ) -> dict | None:
 
+        await HTMLRateLimiter.wait()
+        
         result = await self.fetcher.fetch(
             article_url
         )
