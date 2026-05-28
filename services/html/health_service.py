@@ -10,6 +10,10 @@ from models.source_health import (
     SourceHealth,
 )
 
+from services.html.source_quarantine import (
+    SourceQuarantineService,
+)
+
 
 class SourceHealthService:
 
@@ -37,6 +41,10 @@ class SourceHealthService:
                 result.scalars().first()
             )
 
+            # ==========================================
+            # CREATE HEALTH RECORD
+            # ==========================================
+
             if not health:
 
                 health = SourceHealth(
@@ -44,6 +52,10 @@ class SourceHealthService:
                 )
 
                 session.add(health)
+
+            # ==========================================
+            # SUCCESS METRICS
+            # ==========================================
 
             health.last_success_at = (
                 datetime.utcnow()
@@ -53,7 +65,11 @@ class SourceHealthService:
 
             health.last_score = score
 
-            total = (
+            # ==========================================
+            # AVERAGE SCORE
+            # ==========================================
+
+            total_score = (
                 health.average_score
                 * (
                     health.success_count
@@ -62,8 +78,13 @@ class SourceHealthService:
             ) + score
 
             health.average_score = int(
-                total / health.success_count
+                total_score
+                / health.success_count
             )
+
+            # ==========================================
+            # COMMIT
+            # ==========================================
 
             await session.commit()
 
@@ -91,6 +112,10 @@ class SourceHealthService:
                 result.scalars().first()
             )
 
+            # ==========================================
+            # CREATE HEALTH RECORD
+            # ==========================================
+
             if not health:
 
                 health = SourceHealth(
@@ -99,12 +124,33 @@ class SourceHealthService:
 
                 session.add(health)
 
+            # ==========================================
+            # FAILURE METRICS
+            # ==========================================
+
             health.last_failure_at = (
                 datetime.utcnow()
             )
 
             health.failure_count += 1
 
-            health.last_error = error[:1000]
+            health.last_error = (
+                error[:1000]
+            )
+
+            # ==========================================
+            # COMMIT
+            # ==========================================
 
             await session.commit()
+
+        # ==============================================
+        # AUTO QUARANTINE
+        # ==============================================
+
+        await (
+            SourceQuarantineService
+            .evaluate_source(
+                source_id
+            )
+        )
