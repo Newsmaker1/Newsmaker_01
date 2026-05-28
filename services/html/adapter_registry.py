@@ -2,6 +2,9 @@ from services.html.adapters.default_adapter import (
     DefaultHTMLAdapter,
 )
 
+from services.html.adapters.egov_board_adapter import (
+    EGovBoardAdapter,
+)
 
 class AdapterRegistry:
 
@@ -11,6 +14,10 @@ class AdapterRegistry:
         # DEFAULT
         # ==========================================
 
+        "egov_board": (
+            EGovBoardAdapter
+        ),
+        
         "default": (
             DefaultHTMLAdapter
         ),
