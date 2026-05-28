@@ -1,18 +1,44 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
-from sqlalchemy import select
-from telegram.ext import Application
+from sqlalchemy import (
+    select,
+)
+from telegram.ext import (
+    Application,
+)
 
-from config.settings import get_settings
-from database.session import AsyncSessionLocal
-from models.delivery import Delivery
-from models.destination import Destination
-from models.enums import DeliveryStatus
-from models.post import Post
+from config.settings import (
+    get_settings,
+)
+
+from database.session import (
+    AsyncSessionLocal,
+)
+
+from models.delivery import (
+    Delivery,
+)
+
+from models.destination import (
+    Destination,
+)
+
+from models.enums import (
+    DeliveryStatus,
+)
+
+from models.post import (
+    Post,
+)
+
 from services.rss.formatter import (
     TelegramFormatter,
 )
+
 from services.rss.publisher import (
     TelegramPublisher,
 )
@@ -24,16 +50,24 @@ settings = get_settings()
 
 
 class DeliveryWorker:
+
     def __init__(
         self,
         application: Application,
     ) -> None:
+
         self.application = application
+
+    # ==================================================
+    # PROCESS PENDING
+    # ==================================================
 
     async def process_pending(
         self,
     ) -> None:
+
         async with AsyncSessionLocal() as session:
+
             result = await session.execute(
                 select(Delivery)
                 .where(
@@ -64,7 +98,12 @@ class DeliveryWorker:
                 result.scalars().all()
             )
 
+        # ==============================================
+        # EMPTY QUEUE
+        # ==============================================
+
         if not deliveries:
+
             logger.info(
                 "No pending deliveries"
             )
@@ -76,22 +115,36 @@ class DeliveryWorker:
             f"{len(deliveries)} deliveries"
         )
 
+        # ==============================================
+        # PROCESS DELIVERIES
+        # ==============================================
+
         for delivery in deliveries:
+
             try:
+
                 await self._process_delivery(
                     delivery.id
                 )
+
             except Exception as exc:
+
                 logger.exception(
                     f"Delivery worker error: "
                     f"{exc}"
                 )
 
+    # ==================================================
+    # PROCESS DELIVERY
+    # ==================================================
+
     async def _process_delivery(
         self,
         delivery_id: int,
     ) -> None:
+
         async with AsyncSessionLocal() as session:
+
             result = await session.execute(
                 select(
                     Delivery,
@@ -121,11 +174,61 @@ class DeliveryWorker:
 
             delivery, post, destination = row
 
+            # ==========================================
+            # ALREADY DELIVERED
+            # ==========================================
+
             if (
                 delivery.status
                 == DeliveryStatus.DELIVERED
             ):
                 return
+
+            # ==========================================
+            # DESTINATION CHECK
+            # ==========================================
+
+            if destination.is_deleted:
+
+                logger.warning(
+                    f"Destination deleted: "
+                    f"{destination.id}"
+                )
+
+                delivery.status = (
+                    DeliveryStatus.FAILED
+                )
+
+                delivery.last_error = (
+                    "Destination deleted"
+                )
+
+                await session.commit()
+
+                return
+
+            if not destination.is_active:
+
+                logger.warning(
+                    f"Destination inactive: "
+                    f"{destination.id}"
+                )
+
+                delivery.status = (
+                    DeliveryStatus.FAILED
+                )
+
+                delivery.last_error = (
+                    "Destination inactive"
+                )
+
+                await session.commit()
+
+                return
+
+            # ==========================================
+            # PROCESSING STATUS
+            # ==========================================
 
             delivery.status = (
                 DeliveryStatus.PROCESSING
@@ -134,6 +237,11 @@ class DeliveryWorker:
             await session.commit()
 
             try:
+
+                # ======================================
+                # BUILD POST
+                # ======================================
+
                 text = (
                     TelegramFormatter
                     .build_post(
@@ -151,6 +259,33 @@ class DeliveryWorker:
                         ),
                     )
                 )
+
+                # ======================================
+                # EMPTY TEXT PROTECTION
+                # ======================================
+
+                if not text.strip():
+
+                    logger.warning(
+                        f"Empty text for post "
+                        f"{post.id}"
+                    )
+
+                    delivery.status = (
+                        DeliveryStatus.FAILED
+                    )
+
+                    delivery.last_error = (
+                        "Empty formatted text"
+                    )
+
+                    await session.commit()
+
+                    return
+
+                # ======================================
+                # TELEGRAM PUBLISH
+                # ======================================
 
                 message = (
                     await TelegramPublisher.publish(
@@ -172,6 +307,10 @@ class DeliveryWorker:
                     )
                 )
 
+                # ======================================
+                # DELIVERY SUCCESS
+                # ======================================
+
                 delivery.status = (
                     DeliveryStatus.DELIVERED
                 )
@@ -184,6 +323,8 @@ class DeliveryWorker:
                     datetime.utcnow()
                 )
 
+                delivery.last_error = None
+
                 await session.commit()
 
                 logger.info(
@@ -191,7 +332,12 @@ class DeliveryWorker:
                     f"{delivery.id}"
                 )
 
+            # ==========================================
+            # DELIVERY FAILED
+            # ==========================================
+
             except Exception as exc:
+
                 logger.exception(
                     f"Delivery failed: "
                     f"{exc}"
@@ -201,14 +347,25 @@ class DeliveryWorker:
 
                 delivery.last_error = str(exc)
 
+                # ======================================
+                # MAX RETRIES
+                # ======================================
+
                 if (
                     delivery.retry_count
                     >= settings.MAX_RETRY_ATTEMPTS
                 ):
+
                     delivery.status = (
                         DeliveryStatus.FAILED
                     )
+
+                # ======================================
+                # RETRY MODE
+                # ======================================
+
                 else:
+
                     delivery.status = (
                         DeliveryStatus.RETRY
                     )
