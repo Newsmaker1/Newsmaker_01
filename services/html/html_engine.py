@@ -50,7 +50,9 @@ class HTMLEngine:
         # FETCH LIST PAGE
         # ==============================================
 
-        await HTMLRateLimiter.wait()
+        await HTMLRateLimiter.wait(
+            source.source_url
+        )
         
         result = await self.fetcher.fetch(
             source.source_url
@@ -207,7 +209,9 @@ class HTMLEngine:
         article_url: str,
     ) -> dict | None:
 
-        await HTMLRateLimiter.wait()
+        await HTMLRateLimiter.wait(
+            article_url
+        )
         
         result = await self.fetcher.fetch(
             article_url
