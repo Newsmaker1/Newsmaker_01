@@ -4,7 +4,13 @@ from apscheduler.schedulers.asyncio import (
     AsyncIOScheduler,
 )
 
-from config.settings import get_settings
+from config.settings import (
+    get_settings,
+)
+
+from services.html.source_reactivation import (
+    SourceReactivationService,
+)
 
 from services.rss.delivery_worker import (
     DeliveryWorker,
@@ -25,6 +31,7 @@ scheduler = AsyncIOScheduler()
 def setup_scheduler(
     application,
 ) -> None:
+
     feed_worker = FeedWorker()
 
     delivery_worker = DeliveryWorker(
@@ -32,18 +39,44 @@ def setup_scheduler(
     )
 
     # ==================================================
-    # RSS FEED WORKER
+    # SOURCE REACTIVATION
     # ==================================================
 
     scheduler.add_job(
-        feed_worker.process_sources,
+
+        SourceReactivationService
+        .reactivate_sources,
+
         trigger="interval",
+
+        hours=6,
+
+        id="source_reactivation",
+
+        replace_existing=True,
+
+        max_instances=1,
+    )
+
+    # ==================================================
+    # RSS / HTML FEED WORKER
+    # ==================================================
+
+    scheduler.add_job(
+
+        feed_worker.process_sources,
+
+        trigger="interval",
+
         minutes=(
             settings
             .FETCH_INTERVAL_MINUTES
         ),
+
         id="rss_feed_worker",
+
         replace_existing=True,
+
         max_instances=1,
     )
 
@@ -52,11 +85,17 @@ def setup_scheduler(
     # ==================================================
 
     scheduler.add_job(
+
         delivery_worker.process_pending,
+
         trigger="interval",
+
         seconds=15,
+
         id="delivery_worker",
+
         replace_existing=True,
+
         max_instances=1,
     )
 
