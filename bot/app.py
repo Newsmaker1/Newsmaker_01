@@ -67,6 +67,10 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
+# ==================================================
+# CREATE APPLICATION
+# ==================================================
+
 def create_application() -> Application:
 
     application = (
@@ -92,32 +96,41 @@ def create_application() -> Application:
     )
 
     # ==================================================
-    # ADMIN MENU
+    # FSM HANDLERS
+    # IMPORTANT:
+    # MUST BE BEFORE MENU HANDLERS
     # ==================================================
 
     application.add_handler(
         MessageHandler(
-            filters.Regex(
-                f"^{ADMIN_BUTTON}$"
-            ),
-            admin_menu_handler,
+            filters.TEXT
+            & ~filters.COMMAND,
+            add_rss_handler,
+        ),
+        group=1,
+    )
+
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT
+            & ~filters.COMMAND,
+            add_pack_handler,
+        ),
+        group=1,
+    )
+
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT
+            & ~filters.COMMAND,
+            add_destination_handler,
         ),
         group=1,
     )
 
     # ==================================================
-    # RSS SOURCES
+    # CALLBACKS
     # ==================================================
-
-    application.add_handler(
-        MessageHandler(
-            filters.Regex(
-                "^📰 RSS Источники$"
-            ),
-            rss_sources_handler,
-        ),
-        group=1,
-    )
 
     application.add_handler(
         CallbackQueryHandler(
@@ -125,20 +138,6 @@ def create_application() -> Application:
             pattern="^rss_",
         ),
         group=2,
-    )
-
-    # ==================================================
-    # SOURCE PACKS
-    # ==================================================
-
-    application.add_handler(
-        MessageHandler(
-            filters.Regex(
-                "^📦 Пакеты источников$"
-            ),
-            source_packs_handler,
-        ),
-        group=1,
     )
 
     application.add_handler(
@@ -149,20 +148,6 @@ def create_application() -> Application:
         group=2,
     )
 
-    # ==================================================
-    # DESTINATIONS
-    # ==================================================
-
-    application.add_handler(
-        MessageHandler(
-            filters.Regex(
-                "^📬 Каналы публикации$"
-            ),
-            destinations_handler,
-        ),
-        group=1,
-    )
-    
     application.add_handler(
         CallbackQueryHandler(
             destination_callback_handler,
@@ -170,19 +155,75 @@ def create_application() -> Application:
         ),
         group=2,
     )
-    
+
     # ==================================================
-    # STATISTICS
+    # ADMIN MENU
     # ==================================================
 
     application.add_handler(
         MessageHandler(
             filters.Regex(
-                "^📊 Статистика$"
+                f"^{ADMIN_BUTTON}$"
+            ),
+            admin_menu_handler,
+        ),
+        group=3,
+    )
+
+    # ==================================================
+    # SOURCES MENU
+    # ==================================================
+
+    application.add_handler(
+        MessageHandler(
+            filters.Regex(
+                "^📰 Источники$"
+            ),
+            rss_sources_handler,
+        ),
+        group=3,
+    )
+
+    # ==================================================
+    # PACKS MENU
+    # ==================================================
+
+    application.add_handler(
+        MessageHandler(
+            filters.Regex(
+                "^📦 Пакеты$"
+            ),
+            source_packs_handler,
+        ),
+        group=3,
+    )
+
+    # ==================================================
+    # DESTINATIONS MENU
+    # ==================================================
+
+    application.add_handler(
+        MessageHandler(
+            filters.Regex(
+                "^📬 Дестинейшны$"
+            ),
+            destinations_handler,
+        ),
+        group=3,
+    )
+
+    # ==================================================
+    # MONITORING
+    # ==================================================
+
+    application.add_handler(
+        MessageHandler(
+            filters.Regex(
+                "^📊 Мониторинг$"
             ),
             source_health_handler,
         ),
-        group=1,
+        group=3,
     )
 
     # ==================================================
@@ -196,35 +237,7 @@ def create_application() -> Application:
             ),
             back_handler,
         ),
-        group=1,
-    )
-
-    # ==================================================
-    # FSM HANDLERS
-    # ==================================================
-
-    application.add_handler(
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND,
-            add_rss_handler,
-        ),
-        group=99,
-    )
-
-    application.add_handler(
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND,
-            add_pack_handler,
-        ),
-        group=99,
-    )
-
-    application.add_handler(
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND,
-            add_destination_handler,
-        ),
-        group=99,
+        group=3,
     )
 
     # ==================================================
