@@ -5,39 +5,62 @@ from telegram import (
 
 from bot.constants.buttons import (
     BACK_BUTTON,
-    DESTINATIONS_BUTTON,
-    RSS_SOURCES_BUTTON,
-    SOURCE_PACKS_BUTTON,
-    STATISTICS_BUTTON,
 )
 
+
+# ==================================================
+# ADMIN MENU
+# ==================================================
 
 def get_admin_menu():
 
     keyboard = [
+
         [
             KeyboardButton(
-                text="📰 RSS Источники"
+                text="📰 Источники"
             )
         ],
+
         [
             KeyboardButton(
-                text="📦 Пакеты источников"
+                text="📦 Пакеты"
             )
         ],
+
         [
             KeyboardButton(
-                text="📬 Каналы публикации"
+                text="📬 Дестинейшны"
             )
         ],
+
         [
             KeyboardButton(
-                text="📊 Статистика"
+                text="📊 Мониторинг"
             )
         ],
+
         [
             KeyboardButton(
-                text="⬅️ Назад"
+                text="📨 Рассылка"
+            )
+        ],
+
+        [
+            KeyboardButton(
+                text="👥 Пользователи"
+            )
+        ],
+
+        [
+            KeyboardButton(
+                text="⚙️ Система"
+            )
+        ],
+
+        [
+            KeyboardButton(
+                text=BACK_BUTTON
             )
         ],
     ]
@@ -46,4 +69,5 @@ def get_admin_menu():
         keyboard=keyboard,
         resize_keyboard=True,
         one_time_keyboard=False,
+        selective=True,
     )
