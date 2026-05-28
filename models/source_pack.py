@@ -128,11 +128,12 @@ class PackSource(Base):
     # PARSER
     # ==================================================
 
-    parser_type: Mapped[str | None] = mapped_column(
+    parser_strategy: Mapped[str | None] = mapped_column(
         String(100),
-        nullable=True
+        nullable=True,
+        default="default",
     )
-
+    
     # ==================================================
     # CATEGORY
     # ==================================================
