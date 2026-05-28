@@ -8,6 +8,10 @@ from services.html.base_adapter import (
     BaseHTMLAdapter,
 )
 
+from services.html.link_filter import (
+    HTMLLinkFilter,
+)
+
 
 class DefaultHTMLAdapter(
     BaseHTMLAdapter
@@ -43,9 +47,17 @@ class DefaultHTMLAdapter(
                 href,
             )
 
+            if not (
+                HTMLLinkFilter.is_valid_link(
+                    full_url
+                )
+            ):
+                continue
+            
             if full_url not in links:
+            
                 links.append(full_url)
-
+                
         return links[:100]
 
     async def parse_article(
