@@ -8,6 +8,9 @@ from services.rss.fetcher import (
     RSSFetcher,
 )
 
+from services.html.validator import (
+    HTMLValidator,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -152,41 +155,93 @@ class HTMLEngine:
     # ==================================================
     # PROCESS ARTICLE
     # ==================================================
-
+    
     async def _process_article(
         self,
         adapter,
         article_url: str,
     ) -> dict | None:
-
+    
         result = await self.fetcher.fetch(
             article_url
         )
-
+    
         if (
             result["status"]
             != "success"
         ):
-
+    
+            logger.warning(
+                f"Article fetch failed: "
+                f"{article_url}"
+            )
+    
             return None
-
+    
         html = result["content"]
-
+    
         if not html:
-
+    
+            logger.warning(
+                f"Empty article HTML: "
+                f"{article_url}"
+            )
+    
             return None
-
+    
+        # ==============================================
+        # PARSE ARTICLE
+        # ==============================================
+    
         article = await adapter.parse_article(
             html=html,
             article_url=article_url,
         )
-
+    
         if not article:
-
+    
+            logger.warning(
+                f"Article parsing failed: "
+                f"{article_url}"
+            )
+    
             return None
-
+    
+        # ==============================================
+        # VALIDATE
+        # ==============================================
+    
+        is_valid, score = (
+            HTMLValidator.validate_article(
+                article
+            )
+        )
+    
+        logger.info(
+            f"Article validation "
+            f"score={score} "
+            f"url={article_url}"
+        )
+    
+        if not is_valid:
+    
+            logger.warning(
+                f"Low quality article skipped: "
+                f"{article_url}"
+            )
+    
+            return None
+    
+        # ==============================================
+        # SOURCE URL
+        # ==============================================
+    
         article["source_url"] = (
             article_url
         )
-
+    
+        article["validation_score"] = (
+            score
+        )
+    
         return article
