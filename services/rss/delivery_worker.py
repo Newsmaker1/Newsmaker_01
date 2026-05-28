@@ -294,6 +294,7 @@ class DeliveryWorker:
                         source_url=(
                             post.source_url
                         ),
+                        attachments=attachments,
                     )
                 )
 
