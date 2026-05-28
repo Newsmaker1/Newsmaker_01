@@ -31,6 +31,10 @@ from services.html.news_filter import (
     HTMLNewsFilter,
 )
 
+from services.html.health_service import (
+    SourceHealthService,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -364,47 +368,104 @@ class RSSProcessor:
     # ==================================================
     # PROCESS HTML SOURCE
     # ==================================================
-
+    
     async def process_html_source(
         self,
         source: PackSource,
     ) -> None:
-
-        articles = (
-            await self.html_engine.process_source(
-                source
-            )
-        )
-
-        if not articles:
-
-            logger.warning(
-                "No HTML articles parsed"
-            )
-
-            return
-
-        logger.info(
-            f"Processing "
-            f"{len(articles)} HTML articles"
-        )
-
-        for article in articles:
-
-            try:
-
-                await self.process_html_article(
-                    source=source,
-                    article=article,
+    
+        try:
+    
+            articles = (
+                await self.html_engine.process_source(
+                    source
                 )
-
-            except Exception as exc:
-
-                logger.exception(
-                    f"HTML article error: "
-                    f"{exc}"
+            )
+    
+            if not articles:
+    
+                logger.warning(
+                    "No HTML articles parsed"
                 )
-
+    
+                await (
+                    SourceHealthService
+                    .record_failure(
+                        source_id=source.id,
+                        error=(
+                            "No articles parsed"
+                        ),
+                    )
+                )
+    
+                return
+    
+            logger.info(
+                f"Processing "
+                f"{len(articles)} HTML articles"
+            )
+    
+            scores = []
+    
+            for article in articles:
+    
+                try:
+    
+                    score = article.get(
+                        "validation_score",
+                        0,
+                    )
+    
+                    scores.append(score)
+    
+                    await self.process_html_article(
+                        source=source,
+                        article=article,
+                    )
+    
+                except Exception as exc:
+    
+                    logger.exception(
+                        f"HTML article error: "
+                        f"{exc}"
+                    )
+    
+            # ==============================================
+            # HEALTH SUCCESS
+            # ==============================================
+    
+            average_score = 0
+    
+            if scores:
+    
+                average_score = int(
+                    sum(scores)
+                    / len(scores)
+                )
+    
+            await (
+                SourceHealthService
+                .record_success(
+                    source_id=source.id,
+                    score=average_score,
+                )
+            )
+    
+        except Exception as exc:
+    
+            logger.exception(
+                f"HTML source failure: "
+                f"{exc}"
+            )
+    
+            await (
+                SourceHealthService
+                .record_failure(
+                    source_id=source.id,
+                    error=str(exc),
+                )
+            )
+        
     # ==================================================
     # PROCESS HTML ARTICLE
     # ==================================================
