@@ -54,8 +54,8 @@ from handlers.admin.destination_management import (
     destination_callback_handler,
 )
 
-from handlers.admin.statistics import (
-    statistics_handler,
+from handlers.admin.source_health import (
+    source_health_handler,
 )
 
 from handlers.admin.back import (
@@ -180,7 +180,7 @@ def create_application() -> Application:
             filters.Regex(
                 "^📊 Статистика$"
             ),
-            statistics_handler,
+            source_health_handler,
         ),
         group=1,
     )
