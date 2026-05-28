@@ -23,6 +23,9 @@ from services.rss.normalizer import RSSNormalizer
 from services.rss.parser import RSSParser
 from services.rss.translator import RSSTranslator
 
+from services.html.html_engine import (
+    HTMLEngine,
+)
 
 logger = logging.getLogger(__name__)
 
