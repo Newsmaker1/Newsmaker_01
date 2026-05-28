@@ -55,7 +55,6 @@ class RSSFetcher:
 
             follow_redirects=True,
 
-            http2=True,
 
             limits=httpx.Limits(
                 max_connections=20,
