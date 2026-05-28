@@ -155,6 +155,7 @@ class TelegramFormatter:
         title: str,
         content: str,
         source_url: str,
+        attachments: list | None = None,
     ) -> str:
 
         # ==============================================
@@ -236,6 +237,41 @@ class TelegramFormatter:
                 f"{trimmed_content}\n\n"
             )
 
+        # ==============================================
+        # ATTACHMENTS
+        # ==============================================
+        
+        if attachments:
+        
+            text += "📎 Документы:\n"
+        
+            for item in attachments[:5]:
+        
+                file_name = (
+                    TelegramFormatter.escape_html(
+                        item.get(
+                            "file_name",
+                            "document",
+                        )
+                    )
+                )
+        
+                file_url = html.escape(
+                    item.get(
+                        "file_url",
+                        "",
+                    )
+                )
+        
+                text += (
+                    f"• "
+                    f"<a href=\"{file_url}\">"
+                    f"{file_name}"
+                    f"</a>\n"
+                )
+        
+            text += "\n"
+        
         # ==============================================
         # SOURCE
         # ==============================================
