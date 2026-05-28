@@ -37,6 +37,24 @@ class RSSFetcher:
 
         self.timeout = 30
 
+        # ==========================================
+        # PERSISTENT CLIENT
+        # ==========================================
+
+        self.client = httpx.AsyncClient(
+
+            timeout=self.timeout,
+
+            follow_redirects=True,
+
+            http2=True,
+
+            limits=httpx.Limits(
+                max_connections=20,
+                max_keepalive_connections=10,
+            ),
+        )
+
     # ==================================================
     # FETCH
     # ==================================================
@@ -64,7 +82,7 @@ class RSSFetcher:
     ) -> dict[str, Any]:
 
         # ==============================================
-        # BROWSER HEADERS
+        # HEADERS
         # ==============================================
 
         headers = (
@@ -95,16 +113,10 @@ class RSSFetcher:
         # REQUEST
         # ==============================================
 
-        async with httpx.AsyncClient(
-            timeout=self.timeout,
-            follow_redirects=True,
-            http2=True,
-        ) as client:
-
-            response = await client.get(
-                url,
-                headers=headers,
-            )
+        response = await self.client.get(
+            url,
+            headers=headers,
+        )
 
         # ==============================================
         # NOT MODIFIED
@@ -194,3 +206,13 @@ class RSSFetcher:
                 response.url
             ),
         }
+
+    # ==================================================
+    # CLOSE
+    # ==================================================
+
+    async def close(
+        self,
+    ) -> None:
+
+        await self.client.aclose()
