@@ -1,3 +1,5 @@
+import logging
+
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -38,8 +40,15 @@ from states.pack_state import (
     PACK_ADD_STATE,
 )
 
+
+logger = logging.getLogger(__name__)
+
 settings = get_settings()
 
+
+# ==================================================
+# PACKS MENU
+# ==================================================
 
 async def source_packs_handler(
     update: Update,
@@ -48,11 +57,6 @@ async def source_packs_handler(
 
     if update.message is None:
         return
-
-    print(
-        "PACK BUTTON:",
-        repr(update.message.text)
-    )
 
     if (
         update.message.text
@@ -65,7 +69,16 @@ async def source_packs_handler(
     if user is None:
         return
 
+    # ==============================================
+    # ACCESS CHECK
+    # ==============================================
+
     if user.id not in settings.ADMIN_IDS:
+
+        logger.warning(
+            f"Unauthorized packs access: "
+            f"{user.id}"
+        )
 
         await update.message.reply_text(
             text="⛔ Нет доступа"
@@ -73,14 +86,32 @@ async def source_packs_handler(
 
         return
 
+    # ==============================================
+    # OPEN MENU
+    # ==============================================
+
+    logger.info(
+        f"Pack menu opened: "
+        f"{user.id}"
+    )
+
     await update.message.reply_text(
+
         text=(
-            "📦 Управление PACKS\n\n"
+
+            "📦 Управление пакетами\n\n"
+
             "Выберите действие:"
+
         ),
+
         reply_markup=get_packs_menu(),
     )
 
+
+# ==================================================
+# BUILD PACKS LIST
+# ==================================================
 
 async def build_packs_text():
 
@@ -88,7 +119,14 @@ async def build_packs_text():
 
         result = await session.execute(
             select(SourcePack)
-            .order_by(SourcePack.id.desc())
+            .where(
+                SourcePack.is_deleted.is_(
+                    False
+                )
+            )
+            .order_by(
+                SourcePack.id.desc()
+            )
         )
 
         packs = result.scalars().all()
@@ -96,47 +134,77 @@ async def build_packs_text():
         if not packs:
 
             return (
-                "📭 PACKS отсутствуют",
+                "📭 Пакеты отсутствуют",
                 None,
             )
 
-        text = "📦 Список PACKS\n\n"
+        text = "📦 Список пакетов\n\n"
 
         keyboard = []
 
         for pack in packs:
 
             count_result = await session.execute(
-                select(func.count(PackSource.id))
-                .where(
-                    PackSource.pack_id == pack.id
+
+                select(
+                    func.count(
+                        PackSource.id
+                    )
+                ).where(
+                    PackSource.pack_id
+                    == pack.id
                 )
+
             )
 
-            rss_count = count_result.scalar()
+            rss_count = (
+                count_result.scalar()
+            )
 
             text += (
-                f"📦 PACK #{pack.id}\n"
-                f"NAME: {pack.name}\n"
-                f"RSS: {rss_count}\n\n"
+
+                f"📦 #{pack.id}\n"
+
+                f"Название: "
+                f"{pack.name}\n"
+
+                f"Источников: "
+                f"{rss_count}\n\n"
+
             )
 
             keyboard.append(
+
                 [
+
                     InlineKeyboardButton(
-                        text=f"❌ Delete #{pack.id}",
+
+                        text=(
+                            f"❌ Удалить "
+                            f"#{pack.id}"
+                        ),
+
                         callback_data=(
-                            f"pack_delete_{pack.id}"
+                            f"pack_delete_"
+                            f"{pack.id}"
                         ),
                     )
+
                 ]
+
             )
 
     return (
         text[:4000],
-        InlineKeyboardMarkup(keyboard),
+        InlineKeyboardMarkup(
+            keyboard
+        ),
     )
 
+
+# ==================================================
+# CALLBACK HANDLER
+# ==================================================
 
 async def pack_callback_handler(
     update: Update,
@@ -152,11 +220,6 @@ async def pack_callback_handler(
 
     data = query.data
 
-    print(
-        "PACK CALLBACK:",
-        data
-    )
-
     # ==========================================
     # ADD PACK
     # ==========================================
@@ -168,9 +231,12 @@ async def pack_callback_handler(
         if user_id in PACK_ADD_STATE:
 
             await query.message.reply_text(
+
                 text=(
-                    "⚠️ Вы уже создаёте PACK"
+                    "⚠️ Вы уже "
+                    "создаёте пакет."
                 )
+
             )
 
             return
@@ -179,8 +245,21 @@ async def pack_callback_handler(
             "step": "waiting_name"
         }
 
+        logger.info(
+            f"Pack creation started: "
+            f"{user_id}"
+        )
+
         await query.message.reply_text(
-            text="📦 Введите название PACK:"
+
+            text=(
+
+                "📦 Создание пакета\n\n"
+
+                "Введите название пакета:"
+
+            )
+
         )
 
         return
@@ -218,21 +297,39 @@ async def pack_callback_handler(
         async with AsyncSessionLocal() as session:
 
             rss_result = await session.execute(
-                select(func.count(PackSource.id))
-                .where(
-                    PackSource.pack_id == pack_id
+
+                select(
+                    func.count(
+                        PackSource.id
+                    )
+                ).where(
+                    PackSource.pack_id
+                    == pack_id
                 )
+
             )
 
-            rss_count = rss_result.scalar()
+            rss_count = (
+                rss_result.scalar()
+            )
+
+            # ======================================
+            # RSS EXISTS
+            # ======================================
 
             if rss_count > 0:
 
                 await query.message.reply_text(
+
                     text=(
-                        "❌ Нельзя удалить PACK.\n\n"
-                        "Сначала удалите RSS."
+
+                        "❌ Нельзя удалить пакет.\n\n"
+
+                        "Сначала удалите "
+                        "источники."
+
                     )
+
                 )
 
                 return
@@ -242,17 +339,30 @@ async def pack_callback_handler(
                 pack_id,
             )
 
+            # ======================================
+            # NOT FOUND
+            # ======================================
+
             if not pack:
 
                 await query.message.reply_text(
-                    text="❌ PACK не найден"
+                    text="❌ Пакет не найден"
                 )
 
                 return
 
-            await session.delete(pack)
+            # ======================================
+            # SOFT DELETE
+            # ======================================
+
+            pack.is_deleted = True
 
             await session.commit()
+
+            logger.info(
+                f"Pack deleted: "
+                f"{pack_id}"
+            )
 
         text, keyboard = (
             await build_packs_text()
@@ -265,6 +375,10 @@ async def pack_callback_handler(
 
         return
 
+
+# ==================================================
+# ADD PACK FSM
+# ==================================================
 
 async def add_pack_handler(
     update: Update,
@@ -286,28 +400,82 @@ async def add_pack_handler(
 
     state = PACK_ADD_STATE[user_id]
 
+    # ==========================================
+    # WAITING NAME
+    # ==========================================
+
     if state["step"] == "waiting_name":
 
         pack_name = (
             update.message.text.strip()
         )
 
+        # ======================================
+        # VALIDATION
+        # ======================================
+
         if len(pack_name) < 2:
 
             del PACK_ADD_STATE[user_id]
 
             await update.message.reply_text(
+
                 text=(
-                    "❌ Слишком короткое имя"
+
+                    "❌ Слишком короткое "
+                    "название."
+
                 )
+
             )
 
             return
 
         async with AsyncSessionLocal() as session:
 
+            # ==================================
+            # DUPLICATE CHECK
+            # ==================================
+
+            result = await session.execute(
+
+                select(SourcePack).where(
+                    SourcePack.name
+                    == pack_name
+                )
+
+            )
+
+            existing_pack = (
+                result.scalar_one_or_none()
+            )
+
+            if existing_pack:
+
+                del PACK_ADD_STATE[user_id]
+
+                await update.message.reply_text(
+
+                    text=(
+
+                        "❌ Пакет с таким "
+                        "названием уже "
+                        "существует."
+
+                    )
+
+                )
+
+                return
+
+            # ==================================
+            # CREATE PACK
+            # ==================================
+
             pack = SourcePack(
                 name=pack_name,
+                slug=pack_name.lower()
+                .replace(" ", "-"),
             )
 
             session.add(pack)
@@ -318,10 +486,23 @@ async def add_pack_handler(
 
         del PACK_ADD_STATE[user_id]
 
+        logger.info(
+            f"Pack created: "
+            f"{pack.id}"
+        )
+
         await update.message.reply_text(
+
             text=(
-                "✅ PACK создан\n\n"
-                f"ID: {pack.id}\n"
-                f"NAME: {pack.name}"
+
+                "✅ Пакет создан\n\n"
+
+                f"ID: "
+                f"{pack.id}\n"
+
+                f"Название: "
+                f"{pack.name}"
+
             )
+
         )
