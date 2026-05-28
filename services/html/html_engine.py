@@ -12,6 +12,10 @@ from services.rss.fetcher import (
     RSSFetcher,
 )
 
+from services.html.adapter_detector import (
+    AdapterDetector,
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +46,42 @@ class HTMLEngine:
         # GET ADAPTER
         # ==============================================
 
+        strategy = (
+            source.parser_strategy
+        )
+        
+        # ==============================================
+        # AUTO DETECTION
+        # ==============================================
+        
+        if (
+            not strategy
+            or strategy == "auto"
+        ):
+        
+            detected_strategy = (
+                AdapterDetector.detect_strategy(
+                    html=result["content"],
+                    source_url=(
+                        source.source_url
+                    ),
+                )
+            )
+        
+            logger.info(
+                f"Detected adapter strategy: "
+                f"{detected_strategy}"
+            )
+        
+            strategy = detected_strategy
+        
+        # ==============================================
+        # GET ADAPTER
+        # ==============================================
+        
         adapter = (
             AdapterRegistry.get_adapter(
-                source.parser_strategy
+                strategy
             )
         )
 
