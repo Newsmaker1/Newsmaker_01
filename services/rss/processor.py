@@ -27,6 +27,9 @@ from services.html.html_engine import (
     HTMLEngine,
 )
 
+from services.html.news_filter import (
+    HTMLNewsFilter,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -523,6 +526,27 @@ class RSSProcessor:
             source_domain = None
 
         # ==============================================
+        # OLD NEWS FILTER
+        # ==============================================
+        
+        published_at = article.get(
+            "published_at"
+        )
+        
+        if (
+            HTMLNewsFilter.is_old_news(
+                published_at
+            )
+        ):
+        
+            logger.info(
+                f"Old HTML news skipped: "
+                f"{article['source_url']}"
+            )
+        
+            return
+        
+        # ==============================================
         # SAVE POST
         # ==============================================
 
@@ -567,11 +591,8 @@ class RSSProcessor:
                     )
                 ),
 
-                published_at=(
-                    article.get(
-                        "published_at"
-                    )
-                ),
+                published_at=published_at,
+
             )
 
             session.add(post)
