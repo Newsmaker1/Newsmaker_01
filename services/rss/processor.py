@@ -50,7 +50,7 @@ from services.rss.parser import (
 )
 
 from services.rss.translator import (
-    RSSTranslator,
+    TranslatorService,
 )
 
 from services.html.html_engine import (
@@ -79,7 +79,7 @@ class RSSProcessor:
 
         self.parser = RSSParser()
 
-        self.translator = RSSTranslator()
+        self.translator = TranslatorService()
 
         self.html_engine = HTMLEngine()
 
