@@ -1,3 +1,5 @@
+import logging
+
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -38,6 +40,8 @@ from states.rss_state import (
 )
 
 
+logger = logging.getLogger(__name__)
+
 settings = get_settings()
 
 
@@ -64,7 +68,16 @@ async def rss_sources_handler(
     if user is None:
         return
 
+    # ==============================================
+    # ACCESS CHECK
+    # ==============================================
+
     if user.id not in settings.ADMIN_IDS:
+
+        logger.warning(
+            f"Unauthorized RSS access: "
+            f"{user.id}"
+        )
 
         await update.message.reply_text(
             text="⛔ Нет доступа",
@@ -72,11 +85,25 @@ async def rss_sources_handler(
 
         return
 
+    # ==============================================
+    # OPEN MENU
+    # ==============================================
+
+    logger.info(
+        f"RSS menu opened: "
+        f"{user.id}"
+    )
+
     await update.message.reply_text(
+
         text=(
-            "📰 Управление RSS\n\n"
+
+            "📰 Управление источниками\n\n"
+
             "Выберите действие:"
+
         ),
+
         reply_markup=get_rss_menu(),
     )
 
@@ -90,6 +117,7 @@ async def build_rss_list_text():
     async with AsyncSessionLocal() as session:
 
         result = await session.execute(
+
             select(
                 PackSource,
                 SourcePack,
@@ -102,9 +130,14 @@ async def build_rss_list_text():
             .order_by(
                 PackSource.id.desc()
             )
+
         )
 
         rows = result.all()
+
+    # ==============================================
+    # EMPTY
+    # ==============================================
 
     if not rows:
 
@@ -116,6 +149,10 @@ async def build_rss_list_text():
     text = "📋 Список RSS\n\n"
 
     keyboard = []
+
+    # ==============================================
+    # BUILD LIST
+    # ==============================================
 
     for source, pack in rows:
 
@@ -129,7 +166,8 @@ async def build_rss_list_text():
 
             f"{status}\n"
 
-            f"ID: {source.id}\n"
+            f"ID: "
+            f"{source.id}\n"
 
             f"PACK: "
             f"{pack.name}\n"
@@ -145,32 +183,44 @@ async def build_rss_list_text():
         )
 
         keyboard.append(
+
             [
+
                 InlineKeyboardButton(
+
                     text=toggle_text,
+
                     callback_data=(
                         f"rss_toggle_"
                         f"{source.id}"
                     ),
                 ),
+
                 InlineKeyboardButton(
+
                     text=(
                         f"❌ Delete "
                         f"#{source.id}"
                     ),
+
                     callback_data=(
                         f"rss_delete_"
                         f"{source.id}"
                     ),
                 ),
+
             ]
+
         )
 
     return (
+
         text[:4000],
+
         InlineKeyboardMarkup(
             keyboard
         ),
+
     )
 
 
@@ -203,12 +253,17 @@ async def rss_callback_handler(
         if user_id in RSS_ADD_STATE:
 
             await query.message.reply_text(
+
                 text=(
+
                     "⚠️ Вы уже "
                     "добавляете RSS.\n\n"
+
                     "Сначала завершите "
                     "текущий процесс."
+
                 )
+
             )
 
             return
@@ -217,11 +272,21 @@ async def rss_callback_handler(
             "step": "waiting_url"
         }
 
+        logger.info(
+            f"RSS creation started: "
+            f"{user_id}"
+        )
+
         await query.message.reply_text(
+
             text=(
+
                 "➕ Добавление RSS\n\n"
+
                 "Введите RSS URL:"
+
             )
+
         )
 
         return
@@ -254,10 +319,15 @@ async def rss_callback_handler(
         if user_id not in RSS_ADD_STATE:
 
             await query.message.reply_text(
+
                 text=(
+
                     "❌ Сессия истекла.\n\n"
+
                     "Начните заново."
+
                 )
+
             )
 
             return
@@ -266,14 +336,19 @@ async def rss_callback_handler(
 
         if "rss_url" not in state:
 
-            await query.message.reply_text(
-                text=(
-                    "❌ RSS URL отсутствует.\n\n"
-                    "Начните заново."
-                )
-            )
-
             del RSS_ADD_STATE[user_id]
+
+            await query.message.reply_text(
+
+                text=(
+
+                    "❌ RSS URL отсутствует.\n\n"
+
+                    "Начните заново."
+
+                )
+
+            )
 
             return
 
@@ -291,18 +366,31 @@ async def rss_callback_handler(
                 pack_id,
             )
 
+            # ======================================
+            # NOT FOUND
+            # ======================================
+
             if not pack:
 
                 del RSS_ADD_STATE[user_id]
 
                 await query.message.reply_text(
+
                     text=(
+
                         "❌ PACK не найден.\n\n"
+
                         "Начните заново."
+
                     )
+
                 )
 
                 return
+
+            # ======================================
+            # CREATE SOURCE
+            # ======================================
 
             source = PackSource(
 
@@ -313,6 +401,8 @@ async def rss_callback_handler(
                 ),
 
                 is_active=True,
+
+                source_type="rss",
             )
 
             session.add(source)
@@ -323,7 +413,13 @@ async def rss_callback_handler(
 
         del RSS_ADD_STATE[user_id]
 
+        logger.info(
+            f"RSS added: "
+            f"{source.id}"
+        )
+
         await query.message.reply_text(
+
             text=(
 
                 "✅ RSS успешно добавлен\n\n"
@@ -337,6 +433,7 @@ async def rss_callback_handler(
                 f"{source.source_url}"
 
             )
+
         )
 
         return
@@ -374,6 +471,11 @@ async def rss_callback_handler(
             )
 
             await session.commit()
+
+        logger.info(
+            f"RSS toggled: "
+            f"{source_id}"
+        )
 
         text, keyboard = (
             await build_rss_list_text()
@@ -417,6 +519,11 @@ async def rss_callback_handler(
             await session.delete(source)
 
             await session.commit()
+
+        logger.info(
+            f"RSS deleted: "
+            f"{source_id}"
+        )
 
         text, keyboard = (
             await build_rss_list_text()
@@ -464,6 +571,10 @@ async def add_rss_handler(
             update.message.text.strip()
         )
 
+        # ======================================
+        # VALIDATION
+        # ======================================
+
         if not rss_url.startswith(
             (
                 "http://",
@@ -474,11 +585,16 @@ async def add_rss_handler(
             del RSS_ADD_STATE[user_id]
 
             await update.message.reply_text(
+
                 text=(
+
                     "❌ Некорректный URL\n\n"
+
                     "Начните добавление "
                     "заново."
+
                 )
+
             )
 
             return
@@ -486,6 +602,7 @@ async def add_rss_handler(
         async with AsyncSessionLocal() as session:
 
             result = await session.execute(
+
                 select(SourcePack)
                 .where(
                     SourcePack.is_deleted.is_(
@@ -495,21 +612,33 @@ async def add_rss_handler(
                 .order_by(
                     SourcePack.id.asc()
                 )
+
             )
 
             packs = (
                 result.scalars().all()
             )
 
+        # ======================================
+        # NO PACKS
+        # ======================================
+
         if not packs:
 
             del RSS_ADD_STATE[user_id]
 
             await update.message.reply_text(
+
                 text=(
-                    "❌ Нет доступных PACKS.\n\n"
-                    "Сначала создайте PACK."
+
+                    "❌ Нет доступных "
+                    "пакетов.\n\n"
+
+                    "Сначала создайте "
+                    "пакет."
+
                 )
+
             )
 
             return
@@ -518,17 +647,46 @@ async def add_rss_handler(
 
         state["step"] = "waiting_pack"
 
+        # ======================================
+        # PACK SELECTOR
+        # ======================================
+
+        keyboard = []
+
+        for pack in packs:
+
+            keyboard.append(
+
+                [
+
+                    InlineKeyboardButton(
+
+                        text=(
+                            f"📦 "
+                            f"{pack.name}"
+                        ),
+
+                        callback_data=(
+                            f"rss_pack_"
+                            f"{pack.id}"
+                        ),
+                    )
+
+                ]
+
+            )
+
         await update.message.reply_text(
 
             text=(
-                "📦 Выберите PACK "
+
+                "📦 Выберите пакет "
                 "для RSS:"
+
             ),
 
-            reply_markup=(
-                build_pack_selector(
-                    packs
-                )
+            reply_markup=InlineKeyboardMarkup(
+                keyboard
             ),
         )
 
