@@ -1,27 +1,53 @@
 import logging
+
 from urllib.parse import (
     urlparse,
 )
 
 from sqlalchemy import select
 
-from database.session import AsyncSessionLocal
+from database.session import (
+    AsyncSessionLocal,
+)
 
 from models.delivery import Delivery
-from models.enums import DeliveryStatus
+from models.enums import (
+    DeliveryStatus,
+)
 from models.post import Post
-from models.routing_rule import RoutingRule
-from models.source_pack import PackSource
-from models.source_type import SourceType
+from models.routing_rule import (
+    RoutingRule,
+)
+from models.source_pack import (
+    PackSource,
+)
+from models.source_type import (
+    SourceType,
+)
 
-from services.rss.cleaner import RSSCleaner
+from services.rss.cleaner import (
+    RSSCleaner,
+)
+
 from services.rss.duplicate_detector import (
     DuplicateDetector,
 )
-from services.rss.fetcher import RSSFetcher
-from services.rss.normalizer import RSSNormalizer
-from services.rss.parser import RSSParser
-from services.rss.translator import RSSTranslator
+
+from services.rss.fetcher import (
+    RSSFetcher,
+)
+
+from services.rss.normalizer import (
+    RSSNormalizer,
+)
+
+from services.rss.parser import (
+    RSSParser,
+)
+
+from services.rss.translator import (
+    RSSTranslator,
+)
 
 from services.html.html_engine import (
     HTMLEngine,
@@ -34,6 +60,7 @@ from services.html.news_filter import (
 from services.html.health_service import (
     SourceHealthService,
 )
+
 
 logger = logging.getLogger(__name__)
 
@@ -97,56 +124,119 @@ class RSSProcessor:
 
             return
 
-        # ==============================================
-        # FETCH
-        # ==============================================
+        try:
 
-        result = await self.fetcher.fetch(
-            source.source_url
-        )
+            # ==========================================
+            # FETCH
+            # ==========================================
 
-        if (
-            result["status"]
-            != "success"
-        ):
-
-            logger.warning(
-                f"Fetch failed: "
-                f"{source.source_url}"
+            result = await self.fetcher.fetch(
+                source.source_url
             )
 
-            return
+            if (
+                result["status"]
+                != "success"
+            ):
 
-        feed = result["feed"]
+                logger.warning(
+                    f"Fetch failed: "
+                    f"{source.source_url}"
+                )
 
-        if not feed:
+                await (
+                    SourceHealthService
+                    .record_failure(
+                        source_id=source.id,
+                        error=(
+                            f"Fetch failed: "
+                            f"{result['status']}"
+                        ),
+                    )
+                )
 
-            logger.warning(
-                f"Empty feed: "
-                f"{source.source_url}"
+                return
+
+            feed = result["feed"]
+
+            if not feed:
+
+                logger.warning(
+                    f"Empty feed: "
+                    f"{source.source_url}"
+                )
+
+                await (
+                    SourceHealthService
+                    .record_failure(
+                        source_id=source.id,
+                        error="Empty feed",
+                    )
+                )
+
+                return
+
+            # ==========================================
+            # PROCESS ENTRIES
+            # ==========================================
+
+            processed_entries = 0
+
+            for entry in feed.entries:
+
+                try:
+
+                    await self.process_entry(
+                        source=source,
+                        entry=entry,
+                    )
+
+                    processed_entries += 1
+
+                except Exception as exc:
+
+                    logger.exception(
+                        f"Entry processing error: "
+                        f"{exc}"
+                    )
+
+                    await (
+                        SourceHealthService
+                        .record_failure(
+                            source_id=source.id,
+                            error=str(exc),
+                        )
+                    )
+
+            # ==========================================
+            # HEALTH SUCCESS
+            # ==========================================
+
+            await (
+                SourceHealthService
+                .record_success(
+                    source_id=source.id,
+                    score=min(
+                        processed_entries * 10,
+                        100,
+                    ),
+                )
             )
 
-            return
+        except Exception as exc:
 
-        # ==============================================
-        # PROCESS ENTRIES
-        # ==============================================
+            logger.exception(
+                f"RSS source failure: "
+                f"{exc}"
+            )
 
-        for entry in feed.entries:
-
-            try:
-
-                await self.process_entry(
-                    source=source,
-                    entry=entry,
+            await (
+                SourceHealthService
+                .record_failure(
+                    source_id=source.id,
+                    error=str(exc),
                 )
-
-            except Exception as exc:
-
-                logger.exception(
-                    f"Entry processing error: "
-                    f"{exc}"
-                )
+            )
 
     # ==================================================
     # PROCESS ENTRY
@@ -368,26 +458,26 @@ class RSSProcessor:
     # ==================================================
     # PROCESS HTML SOURCE
     # ==================================================
-    
+
     async def process_html_source(
         self,
         source: PackSource,
     ) -> None:
-    
+
         try:
-    
+
             articles = (
                 await self.html_engine.process_source(
                     source
                 )
             )
-    
+
             if not articles:
-    
+
                 logger.warning(
                     "No HTML articles parsed"
                 )
-    
+
                 await (
                     SourceHealthService
                     .record_failure(
@@ -397,52 +487,52 @@ class RSSProcessor:
                         ),
                     )
                 )
-    
+
                 return
-    
+
             logger.info(
                 f"Processing "
                 f"{len(articles)} HTML articles"
             )
-    
+
             scores = []
-    
+
             for article in articles:
-    
+
                 try:
-    
+
                     score = article.get(
                         "validation_score",
                         0,
                     )
-    
+
                     scores.append(score)
-    
+
                     await self.process_html_article(
                         source=source,
                         article=article,
                     )
-    
+
                 except Exception as exc:
-    
+
                     logger.exception(
                         f"HTML article error: "
                         f"{exc}"
                     )
-    
-            # ==============================================
+
+            # ==========================================
             # HEALTH SUCCESS
-            # ==============================================
-    
+            # ==========================================
+
             average_score = 0
-    
+
             if scores:
-    
+
                 average_score = int(
                     sum(scores)
                     / len(scores)
                 )
-    
+
             await (
                 SourceHealthService
                 .record_success(
@@ -450,14 +540,14 @@ class RSSProcessor:
                     score=average_score,
                 )
             )
-    
+
         except Exception as exc:
-    
+
             logger.exception(
                 f"HTML source failure: "
                 f"{exc}"
             )
-    
+
             await (
                 SourceHealthService
                 .record_failure(
@@ -465,7 +555,7 @@ class RSSProcessor:
                     error=str(exc),
                 )
             )
-        
+
     # ==================================================
     # PROCESS HTML ARTICLE
     # ==================================================
@@ -589,24 +679,24 @@ class RSSProcessor:
         # ==============================================
         # OLD NEWS FILTER
         # ==============================================
-        
+
         published_at = article.get(
             "published_at"
         )
-        
+
         if (
             HTMLNewsFilter.is_old_news(
                 published_at
             )
         ):
-        
+
             logger.info(
                 f"Old HTML news skipped: "
                 f"{article['source_url']}"
             )
-        
+
             return
-        
+
         # ==============================================
         # SAVE POST
         # ==============================================
