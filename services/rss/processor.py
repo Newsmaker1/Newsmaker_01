@@ -25,6 +25,10 @@ from models.source_type import (
     SourceType,
 )
 
+from models.attachment import (
+    Attachment,
+)
+
 from services.rss.cleaner import (
     RSSCleaner,
 )
@@ -750,6 +754,40 @@ class RSSProcessor:
 
             await session.flush()
 
+            # ==========================================
+            # ATTACHMENTS
+            # ==========================================
+            
+            attachments = article.get(
+                "attachments",
+                [],
+            )
+            
+            for item in attachments:
+            
+                attachment = Attachment(
+            
+                    post_id=post.id,
+            
+                    file_name=item.get(
+                        "file_name",
+                        "attachment",
+                    ),
+            
+                    file_url=item.get(
+                        "file_url",
+                        "",
+                    ),
+            
+                    file_type=item.get(
+                        "file_type"
+                    ),
+                )
+            
+                session.add(
+                    attachment
+                )
+            
             await self._create_deliveries(
                 session=session,
                 post=post,
