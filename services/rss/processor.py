@@ -27,6 +27,7 @@ from services.html.html_engine import (
     HTMLEngine,
 )
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -41,6 +42,8 @@ class RSSProcessor:
         self.parser = RSSParser()
 
         self.translator = RSSTranslator()
+
+        self.html_engine = HTMLEngine()
 
     # ==================================================
     # PROCESS SOURCE
@@ -57,7 +60,22 @@ class RSSProcessor:
         )
 
         # ==============================================
-        # SOURCE TYPE
+        # HTML SOURCES
+        # ==============================================
+
+        if (
+            source.source_type
+            == SourceType.HTML
+        ):
+
+            await self.process_html_source(
+                source
+            )
+
+            return
+
+        # ==============================================
+        # UNSUPPORTED
         # ==============================================
 
         if (
@@ -337,6 +355,238 @@ class RSSProcessor:
 
             logger.info(
                 f"Post created: "
+                f"{post.id}"
+            )
+
+    # ==================================================
+    # PROCESS HTML SOURCE
+    # ==================================================
+
+    async def process_html_source(
+        self,
+        source: PackSource,
+    ) -> None:
+
+        articles = (
+            await self.html_engine.process_source(
+                source
+            )
+        )
+
+        if not articles:
+
+            logger.warning(
+                "No HTML articles parsed"
+            )
+
+            return
+
+        logger.info(
+            f"Processing "
+            f"{len(articles)} HTML articles"
+        )
+
+        for article in articles:
+
+            try:
+
+                await self.process_html_article(
+                    source=source,
+                    article=article,
+                )
+
+            except Exception as exc:
+
+                logger.exception(
+                    f"HTML article error: "
+                    f"{exc}"
+                )
+
+    # ==================================================
+    # PROCESS HTML ARTICLE
+    # ==================================================
+
+    async def process_html_article(
+        self,
+        source: PackSource,
+        article: dict,
+    ) -> None:
+
+        title = RSSCleaner.clean_html(
+            article.get("title", "")
+        )
+
+        content = RSSCleaner.clean_html(
+            article.get("content", "")
+        )
+
+        title = (
+            RSSNormalizer.normalize_text(
+                title
+            )
+        )
+
+        content = (
+            RSSNormalizer.normalize_text(
+                content
+            )
+        )
+
+        if not title and not content:
+
+            logger.warning(
+                "Empty HTML article skipped"
+            )
+
+            return
+
+        url_hash = (
+            DuplicateDetector.make_sha256(
+                article["source_url"]
+            )
+        )
+
+        content_hash = (
+            DuplicateDetector.make_sha256(
+                content
+            )
+        )
+
+        # ==============================================
+        # DUPLICATES
+        # ==============================================
+
+        if await (
+            DuplicateDetector
+            .is_duplicate_url(
+                url_hash
+            )
+        ):
+
+            logger.info(
+                "Duplicate HTML URL skipped"
+            )
+
+            return
+
+        if await (
+            DuplicateDetector
+            .is_duplicate_content(
+                content_hash
+            )
+        ):
+
+            logger.info(
+                "Duplicate HTML content skipped"
+            )
+
+            return
+
+        # ==============================================
+        # TRANSLATION
+        # ==============================================
+
+        translated_title = title
+
+        translated_content = content
+
+        if source.translation_enabled:
+
+            translated_title = (
+                await self.translator.translate(
+                    title
+                )
+            )
+
+            translated_content = (
+                await self.translator.translate(
+                    content
+                )
+            )
+
+        # ==============================================
+        # SOURCE DOMAIN
+        # ==============================================
+
+        source_domain = None
+
+        try:
+
+            source_domain = (
+                urlparse(
+                    article["source_url"]
+                ).netloc
+            )
+
+        except Exception:
+
+            source_domain = None
+
+        # ==============================================
+        # SAVE POST
+        # ==============================================
+
+        async with AsyncSessionLocal() as session:
+
+            post = Post(
+
+                pack_id=source.pack_id,
+
+                source_url=(
+                    article["source_url"]
+                ),
+
+                source_domain=source_domain,
+
+                title=title,
+
+                content=content,
+
+                translated_title=(
+                    translated_title
+                ),
+
+                translated_content=(
+                    translated_content
+                ),
+
+                image_url=(
+                    article.get(
+                        "image_url"
+                    )
+                ),
+
+                url_hash=url_hash,
+
+                content_hash=content_hash,
+
+                similarity_hash=(
+                    DuplicateDetector
+                    .make_sha256(
+                        translated_content[:500]
+                    )
+                ),
+
+                published_at=(
+                    article.get(
+                        "published_at"
+                    )
+                ),
+            )
+
+            session.add(post)
+
+            await session.flush()
+
+            await self._create_deliveries(
+                session=session,
+                post=post,
+            )
+
+            await session.commit()
+
+            logger.info(
+                f"HTML post created: "
                 f"{post.id}"
             )
 
