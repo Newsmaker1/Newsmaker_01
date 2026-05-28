@@ -1,6 +1,10 @@
 import logging
 from typing import Any
 
+from urllib.parse import (
+    urlparse,
+)
+
 import feedparser
 import httpx
 
@@ -13,6 +17,10 @@ from tenacity import (
 
 from config.settings import (
     get_settings,
+)
+
+from services.html.circuit_breaker import (
+    HTMLCircuitBreaker,
 )
 
 from services.html.request_headers import (
@@ -81,6 +89,39 @@ class RSSFetcher:
         modified: str | None = None,
     ) -> dict[str, Any]:
 
+        parsed = urlparse(url)
+
+        domain = parsed.netloc.lower()
+
+        # ==============================================
+        # CIRCUIT BREAKER
+        # ==============================================
+
+        if not (
+            HTMLCircuitBreaker.is_available(
+                domain
+            )
+        ):
+
+            logger.warning(
+                f"Circuit breaker active: "
+                f"{domain}"
+            )
+
+            return {
+
+                "status": "blocked",
+
+                "feed": None,
+
+                "content": None,
+
+                "etag": None,
+
+                "modified": None,
+
+            }
+
         # ==============================================
         # HEADERS
         # ==============================================
@@ -113,16 +154,36 @@ class RSSFetcher:
         # REQUEST
         # ==============================================
 
-        response = await self.client.get(
-            url,
-            headers=headers,
-        )
+        try:
+
+            response = await self.client.get(
+                url,
+                headers=headers,
+            )
+
+        except Exception as exc:
+
+            HTMLCircuitBreaker.record_failure(
+                domain
+            )
+
+            logger.exception(
+                f"Request failed: "
+                f"{url} "
+                f"{exc}"
+            )
+
+            raise
 
         # ==============================================
         # NOT MODIFIED
         # ==============================================
 
         if response.status_code == 304:
+
+            HTMLCircuitBreaker.record_success(
+                domain
+            )
 
             logger.info(
                 f"Content not modified: "
@@ -149,6 +210,10 @@ class RSSFetcher:
 
         if response.status_code >= 400:
 
+            HTMLCircuitBreaker.record_failure(
+                domain
+            )
+
             raise RSSFetchError(
                 f"HTTP {response.status_code}"
             )
@@ -173,6 +238,14 @@ class RSSFetcher:
                 f"Bozo feed detected: "
                 f"{url}"
             )
+
+        # ==============================================
+        # SUCCESS
+        # ==============================================
+
+        HTMLCircuitBreaker.record_success(
+            domain
+        )
 
         logger.info(
             f"Fetch successful: {url}"
