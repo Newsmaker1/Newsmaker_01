@@ -25,10 +25,6 @@ from models.source_pack import (
     SourcePack,
 )
 
-from keyboards.admin.pack_selector import (
-    build_pack_selector,
-)
-
 from keyboards.admin.rss_menu import (
     get_rss_menu,
 )
