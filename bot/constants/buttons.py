@@ -31,15 +31,15 @@ ADMIN_BUTTON = (
 # ==================================================
 
 RSS_SOURCES_BUTTON = (
-    "📰 RSS Источники"
+    "📰 Источники"
 )
 
 SOURCE_PACKS_BUTTON = (
-    "📦 Пакеты источников"
+    "📦 Пакеты"
 )
 
 DESTINATIONS_BUTTON = (
-    "📬 Каналы публикации"
+    "📬 Дестинейшны"
 )
 
 USERS_BUTTON = (
@@ -47,7 +47,7 @@ USERS_BUTTON = (
 )
 
 STATISTICS_BUTTON = (
-    "📊 Статистика"
+    "📊 Мониторинг"
 )
 
 BACK_BUTTON = (
