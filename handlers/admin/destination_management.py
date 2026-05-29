@@ -1,3 +1,5 @@
+import logging
+
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -40,8 +42,15 @@ from states.destination_state import (
     DESTINATION_ADD_STATE,
 )
 
+
+logger = logging.getLogger(__name__)
+
 settings = get_settings()
 
+
+# ==================================================
+# DESTINATIONS MENU
+# ==================================================
 
 async def destinations_handler(
     update: Update,
@@ -79,6 +88,10 @@ async def destinations_handler(
     )
 
 
+# ==================================================
+# BUILD DESTINATIONS LIST
+# ==================================================
+
 async def build_destinations_text():
 
     async with AsyncSessionLocal() as session:
@@ -86,7 +99,9 @@ async def build_destinations_text():
         result = await session.execute(
             select(Destination)
             .where(
-                Destination.is_deleted == False
+                Destination.is_deleted.is_(
+                    False
+                )
             )
             .order_by(
                 Destination.id.desc()
@@ -117,12 +132,19 @@ async def build_destinations_text():
         )
 
         text += (
+
             f"{status}\n"
+
             f"ID: {dest.id}\n"
+
             f"TITLE: {dest.title}\n"
-            f"TYPE: {dest.type.value}\n"
+
+            f"TYPE: "
+            f"{dest.type.value}\n"
+
             f"CHAT ID: "
             f"{dest.telegram_chat_id}\n\n"
+
         )
 
         toggle_text = (
@@ -136,13 +158,18 @@ async def build_destinations_text():
                 InlineKeyboardButton(
                     text=toggle_text,
                     callback_data=(
-                        f"destination_toggle_{dest.id}"
+                        f"destination_toggle_"
+                        f"{dest.id}"
                     ),
                 ),
                 InlineKeyboardButton(
-                    text=f"❌ Delete #{dest.id}",
+                    text=(
+                        f"❌ Delete "
+                        f"#{dest.id}"
+                    ),
                     callback_data=(
-                        f"destination_delete_{dest.id}"
+                        f"destination_delete_"
+                        f"{dest.id}"
                     ),
                 ),
             ]
@@ -150,9 +177,15 @@ async def build_destinations_text():
 
     return (
         text[:4000],
-        InlineKeyboardMarkup(keyboard),
+        InlineKeyboardMarkup(
+            keyboard
+        ),
     )
 
+
+# ==================================================
+# CALLBACK HANDLER
+# ==================================================
 
 async def destination_callback_handler(
     update: Update,
@@ -168,11 +201,6 @@ async def destination_callback_handler(
 
     data = query.data
 
-    print(
-        "DESTINATION CALLBACK:",
-        data
-    )
-
     # ==========================================
     # ADD DESTINATION
     # ==========================================
@@ -181,19 +209,107 @@ async def destination_callback_handler(
 
         user_id = query.from_user.id
 
+        if user_id in DESTINATION_ADD_STATE:
+
+            await query.message.reply_text(
+                text=(
+                    "⚠️ Вы уже создаёте "
+                    "канал публикации."
+                )
+            )
+
+            return
+
         DESTINATION_ADD_STATE[user_id] = {
             "step": "waiting_type"
         }
 
+        keyboard = [
+
+            [
+                InlineKeyboardButton(
+                    text="👤 Личный чат",
+                    callback_data=(
+                        "destination_type_private"
+                    ),
+                )
+            ],
+
+            [
+                InlineKeyboardButton(
+                    text="📢 Канал",
+                    callback_data=(
+                        "destination_type_channel"
+                    ),
+                )
+            ],
+
+            [
+                InlineKeyboardButton(
+                    text="👥 Группа",
+                    callback_data=(
+                        "destination_type_group"
+                    ),
+                )
+            ],
+
+            [
+                InlineKeyboardButton(
+                    text="🧵 Форум-тема",
+                    callback_data=(
+                        "destination_type_forum_topic"
+                    ),
+                )
+            ],
+        ]
+
         await query.message.reply_text(
+
             text=(
                 "📬 Добавление канала\n\n"
-                "Введите TYPE:\n\n"
-                "channel\n"
-                "group\n"
-                "private\n"
-                "forum_topic"
+                "Выберите тип:"
+            ),
+
+            reply_markup=InlineKeyboardMarkup(
+                keyboard
+            ),
+        )
+
+        return
+
+    # ==========================================
+    # DESTINATION TYPE
+    # ==========================================
+
+    if data.startswith(
+        "destination_type_"
+    ):
+
+        user_id = query.from_user.id
+
+        if (
+            user_id
+            not in DESTINATION_ADD_STATE
+        ):
+            return
+
+        destination_type = (
+            data.replace(
+                "destination_type_",
+                ""
             )
+        )
+
+        DESTINATION_ADD_STATE[
+            user_id
+        ]["type"] = destination_type
+
+        DESTINATION_ADD_STATE[
+            user_id
+        ]["step"] = "waiting_chat_id"
+
+        await query.message.reply_text(
+            text="Введите CHAT ID:"
         )
 
         return
@@ -308,6 +424,10 @@ async def destination_callback_handler(
         return
 
 
+# ==================================================
+# ADD DESTINATION FSM
+# ==================================================
+
 async def add_destination_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -329,45 +449,6 @@ async def add_destination_handler(
     state = DESTINATION_ADD_STATE[user_id]
 
     # ==========================================
-    # WAITING TYPE
-    # ==========================================
-
-    if state["step"] == "waiting_type":
-
-        destination_type = (
-            update.message.text.strip()
-        )
-
-        allowed_types = [
-            item.value
-            for item
-            in DestinationType
-        ]
-
-        if (
-            destination_type
-            not in allowed_types
-        ):
-
-            del DESTINATION_ADD_STATE[user_id]
-
-            await update.message.reply_text(
-                text="❌ Неверный TYPE"
-            )
-
-            return
-
-        state["type"] = destination_type
-
-        state["step"] = "waiting_chat_id"
-
-        await update.message.reply_text(
-            text="Введите CHAT ID:"
-        )
-
-        return
-
-    # ==========================================
     # WAITING CHAT ID
     # ==========================================
 
@@ -384,7 +465,10 @@ async def add_destination_handler(
             del DESTINATION_ADD_STATE[user_id]
 
             await update.message.reply_text(
-                text="❌ CHAT ID должен быть числом"
+                text=(
+                    "❌ CHAT ID должен "
+                    "быть числом"
+                )
             )
 
             return
@@ -394,7 +478,7 @@ async def add_destination_handler(
         state["step"] = "waiting_title"
 
         await update.message.reply_text(
-            text="Введите TITLE:"
+            text="Введите название:"
         )
 
         return
@@ -408,6 +492,19 @@ async def add_destination_handler(
         title = (
             update.message.text.strip()
         )
+
+        if len(title) < 2:
+
+            del DESTINATION_ADD_STATE[user_id]
+
+            await update.message.reply_text(
+                text=(
+                    "❌ Слишком короткое "
+                    "название"
+                )
+            )
+
+            return
 
         async with AsyncSessionLocal() as session:
 
@@ -430,6 +527,11 @@ async def add_destination_handler(
             await session.refresh(destination)
 
         del DESTINATION_ADD_STATE[user_id]
+
+        logger.info(
+            f"Destination created: "
+            f"{destination.id}"
+        )
 
         await update.message.reply_text(
             text=(
