@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    UniqueConstraint,
 )
 
 from sqlalchemy.orm import (
@@ -17,66 +18,87 @@ from sqlalchemy.orm import (
 )
 
 from database.base import Base
-from models.enums import DestinationType
+
+from models.enums import (
+    DestinationType,
+)
 
 
 class Destination(Base):
     __tablename__ = "destinations"
 
+    __table_args__ = (
+
+        UniqueConstraint(
+
+            "telegram_chat_id",
+
+            "telegram_thread_id",
+
+            name=(
+                "uq_destination_chat_thread"
+            ),
+        ),
+
+    )
+
     id: Mapped[int] = mapped_column(
         primary_key=True,
-        autoincrement=True
+        autoincrement=True,
     )
 
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE",
+        ),
         nullable=False,
-        index=True
+        index=True,
     )
 
     type: Mapped[DestinationType] = mapped_column(
         Enum(DestinationType),
         nullable=False,
-        index=True
+        index=True,
     )
 
     telegram_chat_id: Mapped[int] = mapped_column(
         BigInteger,
         nullable=False,
-        index=True
+        index=True,
     )
 
     telegram_thread_id: Mapped[int | None] = mapped_column(
         Integer,
-        nullable=True
+        nullable=True,
     )
 
     title: Mapped[str] = mapped_column(
         String(255),
-        nullable=False
+        nullable=False,
     )
 
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         default=True,
         nullable=False,
-        index=True
+        index=True,
     )
 
     is_deleted: Mapped[bool] = mapped_column(
         Boolean,
         default=False,
         nullable=False,
-        index=True
+        index=True,
     )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow,
-        nullable=False
+        nullable=False,
     )
 
     user = relationship(
         "User",
-        backref="destinations"
+        backref="destinations",
     )
