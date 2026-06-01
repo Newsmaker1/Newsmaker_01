@@ -385,6 +385,11 @@ async def add_pack_handler(
     context: ContextTypes.DEFAULT_TYPE,
 ):
 
+    logger.warning(
+        f"ADD_PACK_HANDLER CALLED | "
+        f"text={getattr(update.message, 'text', None)!r}"
+    )
+
     if update.message is None:
         return
 
@@ -395,10 +400,24 @@ async def add_pack_handler(
 
     user_id = user.id
 
+    logger.warning(
+        f"PACK_ADD_STATE={PACK_ADD_STATE}"
+    )
+
     if user_id not in PACK_ADD_STATE:
+
+        logger.warning(
+            f"USER {user_id} "
+            f"NOT IN PACK_ADD_STATE"
+        )
+
         return
 
     state = PACK_ADD_STATE[user_id]
+
+    logger.warning(
+        f"PACK FSM STATE={state}"
+    )
 
     # ==========================================
     # WAITING NAME
@@ -408,6 +427,10 @@ async def add_pack_handler(
 
         pack_name = (
             update.message.text.strip()
+        )
+
+        logger.warning(
+            f"CREATING PACK: {pack_name}"
         )
 
         # ======================================
@@ -431,58 +454,81 @@ async def add_pack_handler(
 
             return
 
-        async with AsyncSessionLocal() as session:
+        try:
 
-            # ==================================
-            # DUPLICATE CHECK
-            # ==================================
+            async with AsyncSessionLocal() as session:
 
-            result = await session.execute(
+                # ==================================
+                # DUPLICATE CHECK
+                # ==================================
 
-                select(SourcePack).where(
-                    SourcePack.name
-                    == pack_name
-                )
+                result = await session.execute(
 
-            )
-
-            existing_pack = (
-                result.scalar_one_or_none()
-            )
-
-            if existing_pack:
-
-                del PACK_ADD_STATE[user_id]
-
-                await update.message.reply_text(
-
-                    text=(
-
-                        "❌ Пакет с таким "
-                        "названием уже "
-                        "существует."
-
+                    select(SourcePack).where(
+                        SourcePack.name
+                        == pack_name
                     )
 
                 )
 
-                return
+                existing_pack = (
+                    result.scalar_one_or_none()
+                )
 
-            # ==================================
-            # CREATE PACK
-            # ==================================
+                if existing_pack:
 
-            pack = SourcePack(
-                name=pack_name,
-                slug=pack_name.lower()
-                .replace(" ", "-"),
+                    del PACK_ADD_STATE[user_id]
+
+                    await update.message.reply_text(
+
+                        text=(
+
+                            "❌ Пакет с таким "
+                            "названием уже "
+                            "существует."
+
+                        )
+
+                    )
+
+                    return
+
+                # ==================================
+                # CREATE PACK
+                # ==================================
+
+                pack = SourcePack(
+                    name=pack_name,
+                    slug=pack_name.lower()
+                    .replace(" ", "-"),
+                )
+
+                session.add(pack)
+
+                await session.commit()
+
+                await session.refresh(pack)
+
+                logger.warning(
+                    f"PACK CREATED: "
+                    f"id={pack.id}"
+                )
+
+        except Exception as exc:
+
+            logger.exception(
+                f"PACK CREATE ERROR: "
+                f"{exc}"
             )
 
-            session.add(pack)
+            await update.message.reply_text(
+                text=(
+                    "❌ Ошибка создания "
+                    "пакета. Смотри лог."
+                )
+            )
 
-            await session.commit()
-
-            await session.refresh(pack)
+            return
 
         del PACK_ADD_STATE[user_id]
 
