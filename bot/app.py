@@ -11,8 +11,6 @@ from telegram.ext import (
     filters,
 )
 
-from states.rss_state import RSS_ADD_STATE
-
 from config.settings import (
     get_settings,
 )
@@ -59,7 +57,7 @@ from states.pack_state import (
     PACK_ADD_STATE,
 )
 
-from states.source_state import (
+from states.rss_state import (
     RSS_ADD_STATE,
 )
 
@@ -91,10 +89,6 @@ async def fsm_router(
 
     user_id = user.id
 
-    # ==============================================
-    # PACK FSM
-    # ==============================================
-
     if user_id in PACK_ADD_STATE:
 
         await add_pack_handler(
@@ -104,10 +98,6 @@ async def fsm_router(
 
         return
 
-    # ==============================================
-    # RSS FSM
-    # ==============================================
-
     if user_id in RSS_ADD_STATE:
 
         await add_rss_handler(
@@ -116,10 +106,6 @@ async def fsm_router(
         )
 
         return
-
-    # ==============================================
-    # DESTINATION FSM
-    # ==============================================
 
     if user_id in DESTINATION_ADD_STATE:
 
@@ -160,19 +146,6 @@ def create_application() -> Application:
     )
 
     # ==================================================
-    # FSM ROUTER
-    # ==================================================
-
-    application.add_handler(
-        MessageHandler(
-            filters.TEXT
-            & ~filters.COMMAND,
-            fsm_router,
-        ),
-        group=1,
-    )
-
-    # ==================================================
     # CALLBACKS
     # ==================================================
 
@@ -181,7 +154,7 @@ def create_application() -> Application:
             rss_callback_handler,
             pattern="^rss_",
         ),
-        group=2,
+        group=1,
     )
 
     application.add_handler(
@@ -189,13 +162,26 @@ def create_application() -> Application:
             pack_callback_handler,
             pattern="^pack_",
         ),
-        group=2,
+        group=1,
     )
 
     application.add_handler(
         CallbackQueryHandler(
             destination_callback_handler,
             pattern="^destination_",
+        ),
+        group=1,
+    )
+
+    # ==================================================
+    # FSM ROUTER
+    # ==================================================
+
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT
+            & ~filters.COMMAND,
+            fsm_router,
         ),
         group=2,
     )
