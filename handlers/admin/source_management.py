@@ -240,6 +240,10 @@ async def rss_callback_handler(
 
     await query.answer()
 
+    logger.warning(
+        f"RSS CALLBACK: {query.data}"
+    )
+    
     data = query.data
 
     # ==========================================
@@ -314,6 +318,10 @@ async def rss_callback_handler(
 
     if data.startswith("rss_pack_"):
 
+        logger.warning(
+            f"RSS PACK SELECTED: {data}"
+        )
+        
         user_id = query.from_user.id
 
         if user_id not in RSS_ADD_STATE:
