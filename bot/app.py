@@ -11,6 +11,8 @@ from telegram.ext import (
     filters,
 )
 
+from states.rss_state import RSS_ADD_STATE
+
 from config.settings import (
     get_settings,
 )
