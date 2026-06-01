@@ -1,9 +1,12 @@
 import logging
 
+from telegram import Update
+
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
     CommandHandler,
+    ContextTypes,
     MessageHandler,
     filters,
 )
@@ -12,25 +15,13 @@ from config.settings import (
     get_settings,
 )
 
-# ==================================================
-# BUTTONS
-# ==================================================
-
 from bot.constants.buttons import (
     ADMIN_BUTTON,
 )
 
-# ==================================================
-# USER HANDLERS
-# ==================================================
-
 from handlers.start import (
     start_handler,
 )
-
-# ==================================================
-# ADMIN HANDLERS
-# ==================================================
 
 from handlers.admin.admin_menu import (
     admin_menu_handler,
@@ -50,8 +41,8 @@ from handlers.admin.pack_management import (
 
 from handlers.admin.destination_management import (
     add_destination_handler,
-    destinations_handler,
     destination_callback_handler,
+    destinations_handler,
 )
 
 from handlers.admin.source_health import (
@@ -62,9 +53,80 @@ from handlers.admin.back import (
     back_handler,
 )
 
+from states.pack_state import (
+    PACK_ADD_STATE,
+)
+
+from states.source_state import (
+    RSS_ADD_STATE,
+)
+
+from states.destination_state import (
+    DESTINATION_ADD_STATE,
+)
+
 logger = logging.getLogger(__name__)
 
 settings = get_settings()
+
+
+# ==================================================
+# FSM ROUTER
+# ==================================================
+
+async def fsm_router(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+
+    if update.message is None:
+        return
+
+    user = update.effective_user
+
+    if user is None:
+        return
+
+    user_id = user.id
+
+    # ==============================================
+    # PACK FSM
+    # ==============================================
+
+    if user_id in PACK_ADD_STATE:
+
+        await add_pack_handler(
+            update,
+            context,
+        )
+
+        return
+
+    # ==============================================
+    # RSS FSM
+    # ==============================================
+
+    if user_id in RSS_ADD_STATE:
+
+        await add_rss_handler(
+            update,
+            context,
+        )
+
+        return
+
+    # ==============================================
+    # DESTINATION FSM
+    # ==============================================
+
+    if user_id in DESTINATION_ADD_STATE:
+
+        await add_destination_handler(
+            update,
+            context,
+        )
+
+        return
 
 
 # ==================================================
@@ -96,34 +158,14 @@ def create_application() -> Application:
     )
 
     # ==================================================
-    # FSM HANDLERS
-    # IMPORTANT:
-    # MUST BE BEFORE MENU HANDLERS
+    # FSM ROUTER
     # ==================================================
 
     application.add_handler(
         MessageHandler(
             filters.TEXT
             & ~filters.COMMAND,
-            add_rss_handler,
-        ),
-        group=1,
-    )
-
-    application.add_handler(
-        MessageHandler(
-            filters.TEXT
-            & ~filters.COMMAND,
-            add_pack_handler,
-        ),
-        group=1,
-    )
-
-    application.add_handler(
-        MessageHandler(
-            filters.TEXT
-            & ~filters.COMMAND,
-            add_destination_handler,
+            fsm_router,
         ),
         group=1,
     )
@@ -170,10 +212,6 @@ def create_application() -> Application:
         group=3,
     )
 
-    # ==================================================
-    # SOURCES MENU
-    # ==================================================
-
     application.add_handler(
         MessageHandler(
             filters.Regex(
@@ -183,10 +221,6 @@ def create_application() -> Application:
         ),
         group=3,
     )
-
-    # ==================================================
-    # PACKS MENU
-    # ==================================================
 
     application.add_handler(
         MessageHandler(
@@ -198,10 +232,6 @@ def create_application() -> Application:
         group=3,
     )
 
-    # ==================================================
-    # DESTINATIONS MENU
-    # ==================================================
-
     application.add_handler(
         MessageHandler(
             filters.Regex(
@@ -211,10 +241,6 @@ def create_application() -> Application:
         ),
         group=3,
     )
-
-    # ==================================================
-    # MONITORING
-    # ==================================================
 
     application.add_handler(
         MessageHandler(
@@ -226,10 +252,6 @@ def create_application() -> Application:
         group=3,
     )
 
-    # ==================================================
-    # BACK
-    # ==================================================
-
     application.add_handler(
         MessageHandler(
             filters.Regex(
@@ -239,10 +261,6 @@ def create_application() -> Application:
         ),
         group=3,
     )
-
-    # ==================================================
-    # LOGGING
-    # ==================================================
 
     logger.info(
         "Telegram application initialized"
