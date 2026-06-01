@@ -316,56 +316,81 @@ async def rss_callback_handler(
     # SELECT PACK
     # ==========================================
 
-    if data.startswith("rss_pack_"):
+if data.startswith("rss_pack_"):
+
+    logger.warning(
+        f"RSS PACK SELECTED: {data}"
+    )
+
+    user_id = query.from_user.id
+
+    logger.warning(
+        f"RSS_ADD_STATE: "
+        f"{RSS_ADD_STATE}"
+    )
+
+    if user_id not in RSS_ADD_STATE:
 
         logger.warning(
-            f"RSS PACK SELECTED: {data}"
+            f"RSS SESSION NOT FOUND "
+            f"FOR USER {user_id}"
         )
-        
-        user_id = query.from_user.id
 
-        if user_id not in RSS_ADD_STATE:
+        await query.message.reply_text(
 
-            await query.message.reply_text(
+            text=(
 
-                text=(
+                "❌ Сессия истекла.\n\n"
 
-                    "❌ Сессия истекла.\n\n"
-
-                    "Начните заново."
-
-                )
+                "Начните заново."
 
             )
 
-            return
-
-        state = RSS_ADD_STATE[user_id]
-
-        if "rss_url" not in state:
-
-            del RSS_ADD_STATE[user_id]
-
-            await query.message.reply_text(
-
-                text=(
-
-                    "❌ RSS URL отсутствует.\n\n"
-
-                    "Начните заново."
-
-                )
-
-            )
-
-            return
-
-        pack_id = int(
-            data.replace(
-                "rss_pack_",
-                ""
-            )
         )
+
+        return
+
+    state = RSS_ADD_STATE[user_id]
+
+    logger.warning(
+        f"RSS STATE: {state}"
+    )
+
+    if "rss_url" not in state:
+
+        logger.warning(
+            "RSS URL MISSING IN STATE"
+        )
+
+        del RSS_ADD_STATE[user_id]
+
+        await query.message.reply_text(
+
+            text=(
+
+                "❌ RSS URL отсутствует.\n\n"
+
+                "Начните заново."
+
+            )
+
+        )
+
+        return
+
+    pack_id = int(
+        data.replace(
+            "rss_pack_",
+            ""
+        )
+    )
+
+    logger.warning(
+        f"PACK ID SELECTED: "
+        f"{pack_id}"
+    )
+
+    try:
 
         async with AsyncSessionLocal() as session:
 
@@ -374,9 +399,9 @@ async def rss_callback_handler(
                 pack_id,
             )
 
-            # ======================================
-            # NOT FOUND
-            # ======================================
+            logger.warning(
+                f"PACK FOUND: {pack}"
+            )
 
             if not pack:
 
@@ -395,6 +420,91 @@ async def rss_callback_handler(
                 )
 
                 return
+
+            logger.warning(
+                f"CREATING RSS: "
+                f"{state['rss_url']}"
+            )
+
+            source = PackSource(
+
+                pack_id=pack.id,
+
+                source_url=(
+                    state["rss_url"]
+                ),
+
+                is_active=True,
+
+                source_type="rss",
+            )
+
+            session.add(source)
+
+            logger.warning(
+                "BEFORE COMMIT"
+            )
+
+            await session.commit()
+
+            logger.warning(
+                "AFTER COMMIT"
+            )
+
+            await session.refresh(source)
+
+            logger.warning(
+                f"RSS CREATED: "
+                f"{source.id}"
+            )
+
+    except Exception as exc:
+
+        logger.exception(
+            f"RSS CREATE ERROR: "
+            f"{exc}"
+        )
+
+        await query.message.reply_text(
+
+            text=(
+
+                "❌ Ошибка создания RSS.\n\n"
+
+                "Смотрите лог Railway."
+
+            )
+
+        )
+
+        return
+
+    del RSS_ADD_STATE[user_id]
+
+    logger.info(
+        f"RSS added: "
+        f"{source.id}"
+    )
+
+    await query.message.reply_text(
+
+        text=(
+
+            "✅ RSS успешно добавлен\n\n"
+
+            f"ID: "
+            f"{source.id}\n"
+
+            f"PACK: "
+            f"{pack.name}\n\n"
+
+            f"{source.source_url}"
+
+        )
+
+    )
+
+    return
 
             # ======================================
             # CREATE SOURCE
