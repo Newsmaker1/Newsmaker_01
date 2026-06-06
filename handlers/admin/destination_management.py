@@ -42,6 +42,9 @@ from states.destination_state import (
     DESTINATION_ADD_STATE,
 )
 
+from models.user import (
+    User,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -462,7 +465,10 @@ async def add_destination_handler(
 
         except ValueError:
 
-            del DESTINATION_ADD_STATE[user_id]
+            DESTINATION_ADD_STATE.pop(
+                user_id,
+                None
+            )
 
             await update.message.reply_text(
                 text=(
@@ -495,7 +501,10 @@ async def add_destination_handler(
 
         if len(title) < 2:
 
-            del DESTINATION_ADD_STATE[user_id]
+            DESTINATION_ADD_STATE.pop(
+                user_id,
+                None
+            )
 
             await update.message.reply_text(
                 text=(
@@ -507,9 +516,30 @@ async def add_destination_handler(
             return
 
         async with AsyncSessionLocal() as session:
-
+        
+            result = await session.execute(
+                select(User).where(
+                    User.telegram_id == user_id
+                )
+            )
+        
+            db_user = result.scalar_one_or_none()
+        
+            if not db_user:
+        
+                DESTINATION_ADD_STATE.pop(
+                    user_id,
+                    None
+                )
+        
+                await update.message.reply_text(
+                    text="❌ Пользователь не найден"
+                )
+        
+                return
+        
             destination = Destination(
-                user_id=user_id,
+                user_id=db_user.id,
                 type=DestinationType(
                     state["type"]
                 ),
@@ -519,14 +549,50 @@ async def add_destination_handler(
                 title=title,
                 is_active=True,
             )
+        
+            try:
+            
+                session.add(destination)
 
-            session.add(destination)
+                logger.warning(
+                    f"DESTINATION CREATE "
+                    f"USER={db_user.id} "
+                    f"CHAT={state['chat_id']} "
+                    f"TYPE={state['type']}"
+                )
+                
+                await session.commit()
+                
+                await session.refresh(destination)
+                
+                logger.warning(
+                    f"DESTINATION CREATED "
+                    f"ID={destination.id}"
+                )
+            
+            except Exception as exc:
+            
+                await session.rollback()
+            
+                logger.exception(
+                    f"DESTINATION CREATE ERROR: {exc}"
+                )
+            
+                DESTINATION_ADD_STATE.pop(
+                    user_id,
+                    None
+                )
+            
+                await update.message.reply_text(
+                    text="❌ Ошибка создания канала"
+                )
+            
+                return
 
-            await session.commit()
-
-            await session.refresh(destination)
-
-        del DESTINATION_ADD_STATE[user_id]
+        DESTINATION_ADD_STATE.pop(
+            user_id,
+            None
+        )
 
         logger.info(
             f"Destination created: "
