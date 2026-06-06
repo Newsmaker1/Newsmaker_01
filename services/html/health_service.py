@@ -46,11 +46,15 @@ class SourceHealthService:
             # ==========================================
 
             if not health:
-
+            
                 health = SourceHealth(
-                    source_id=source_id
+                    source_id=source_id,
+                    success_count=0,
+                    failure_count=0,
+                    average_score=0,
+                    last_score=0,
                 )
-
+            
                 session.add(health)
 
             # ==========================================
@@ -61,7 +65,9 @@ class SourceHealthService:
                 datetime.utcnow()
             )
 
-            health.success_count += 1
+            health.success_count = (
+                health.success_count or 0
+            ) + 1
 
             health.last_score = score
 
@@ -117,11 +123,15 @@ class SourceHealthService:
             # ==========================================
 
             if not health:
-
+            
                 health = SourceHealth(
-                    source_id=source_id
+                    source_id=source_id,
+                    success_count=0,
+                    failure_count=0,
+                    average_score=0,
+                    last_score=0,
                 )
-
+            
                 session.add(health)
 
             # ==========================================
@@ -132,7 +142,9 @@ class SourceHealthService:
                 datetime.utcnow()
             )
 
-            health.failure_count += 1
+            health.failure_count = (
+                health.failure_count or 0
+            ) + 1
 
             health.last_error = (
                 error[:1000]
