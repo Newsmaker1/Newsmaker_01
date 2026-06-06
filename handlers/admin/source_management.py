@@ -43,6 +43,7 @@ from states.rss_state import (
     RSS_ADD_STATE,
 )
 
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -442,7 +443,19 @@ async def rss_callback_handler(
                 
                     source_type=SourceType.RSS,
                 )
-    
+
+                logger.warning(
+                    f"PACK ID={pack.id}"
+                )
+                
+                logger.warning(
+                    f"RSS URL={state['rss_url']}"
+                )
+                
+                logger.warning(
+                    f"SOURCE TYPE={SourceType.RSS}"
+                )
+                
                 session.add(source)
     
                 logger.warning(
@@ -464,9 +477,9 @@ async def rss_callback_handler(
     
         except Exception as exc:
     
-            logger.exception(
-                f"RSS CREATE ERROR: "
-                f"{exc}"
+            logger.error(
+                "RSS CREATE ERROR FULL:\n%s",
+                traceback.format_exc(),
             )
     
             await query.message.reply_text(
