@@ -108,7 +108,10 @@ class PackSource(Base):
     # ==================================================
 
     source_type: Mapped[SourceType] = mapped_column(
-        Enum(SourceType),
+        Enum(
+            SourceType,
+            native_enum=False,
+        ),
         default=SourceType.RSS,
         nullable=False,
         index=True
