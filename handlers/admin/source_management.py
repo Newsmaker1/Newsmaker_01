@@ -27,6 +27,10 @@ from models.source_pack import (
     SourcePack,
 )
 
+from models.source_type import (
+    SourceType,
+)
+
 from keyboards.admin.rss_menu import (
     get_rss_menu,
 )
@@ -427,16 +431,16 @@ async def rss_callback_handler(
                 )
     
                 source = PackSource(
-    
+                
                     pack_id=pack.id,
-    
+                
                     source_url=(
                         state["rss_url"]
                     ),
-    
+                
                     is_active=True,
-    
-                    source_type="rss",
+                
+                    source_type=SourceType.RSS,
                 )
     
                 session.add(source)
